@@ -17,15 +17,17 @@
 package grails.plugins.crm.campaign
 
 import grails.events.Listener
+import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
+import org.hibernate.FetchMode
 
 /**
  * Campaign Services.
  */
 class CrmCampaignService {
 
-    def textTemplateService
+    def crmContentService
     def crmTagService
     def sequenceGeneratorService
 
@@ -47,7 +49,6 @@ class CrmCampaignService {
         def tenant = event.id
         def count = 0
         count += CrmCampaign.countByTenantId(tenant)
-        count += CrmCampaignType.countByTenantId(tenant)
         count += CrmCampaignStatus.countByTenantId(tenant)
         count ? [namespace: 'crmCampaign', topic: 'deleteTenant'] : null
     }
@@ -61,17 +62,59 @@ class CrmCampaignService {
         // Remove all campaigns
         CrmCampaign.findAllByTenantId(tenant)*.delete()
         // Remove types and statuses.
-        CrmCampaignType.findAllByTenantId(tenant)*.delete()
         CrmCampaignStatus.findAllByTenantId(tenant)*.delete()
         log.warn("Deleted $count campaigns in tenant $tenant")
     }
 
-    List<String> getCampaignTypes() {
-        ['productDiscountCampaign']
+    /**
+     * Empty query = search all records.
+     *
+     * @param params pagination parameters
+     * @return List of CrmCampaign domain instances
+     */
+    def list(Map params = [:]) {
+        listCampaigns([:], params)
     }
 
-    CrmCampaign getCampaign(String number) {
-        CrmCampaign.findByNumberAndTenantId(number, TenantUtils.tenant)
+    /**
+     * Find CrmCampaign instances filtered by query.
+     *
+     * @param query filter parameters
+     * @param params pagination parameters
+     * @return List of CrmCampaign domain instances
+     */
+    def list(Map query, Map params) {
+        listCampaigns(query, params)
+    }
+
+    /**
+     * Find CrmCampaign instances filtered by query.
+     *
+     * @param query filter parameters
+     * @param params pagination parameters
+     * @return List of CrmCampaign domain instances
+     */
+    def listCampaigns(Map query, Map params) {
+        CrmCampaign.createCriteria().list(params) {
+            eq('tenantId', TenantUtils.tenant)
+            if (query.number) {
+                or {
+                    ilike('number', SearchUtils.wildcard(query.number))
+                    ilike('code', SearchUtils.wildcard(query.number))
+                }
+            }
+            if (query.name) {
+                ilike('name', SearchUtils.wildcard(query.name))
+            }
+            if (query.status) {
+                status {
+                    or {
+                        ilike('name', SearchUtils.wildcard(query.status))
+                        eq('param', query.status)
+                    }
+                }
+            }
+        }
     }
 
     CrmCampaign createCampaign(Map params, boolean save = false) {
@@ -82,8 +125,8 @@ class CrmCampaignService {
             def args = [m, params, [include: CrmCampaign.BIND_WHITELIST]]
             new BindDynamicMethod().invoke(m, 'bind', args.toArray())
             m.tenantId = tenant
-            if (! m.status) {
-                m.status = CrmCampaignStatus.findAllByTenantId(tenant, [sort: 'orderIndex', order: 'asc']).find{it}
+            if (!m.status) {
+                m.status = CrmCampaignStatus.findAllByTenantId(tenant, [sort: 'orderIndex', order: 'asc']).find { it }
             }
             if (save) {
                 m.save()
@@ -114,30 +157,47 @@ class CrmCampaignService {
         return m
     }
 
-    String content(String templateName, String contentType = null, String language = null) {
-        textTemplateService.content(templateName, contentType, language)
+    CrmCampaign getCampaign(Long id) {
+        CrmCampaign.get(id)
+    }
+
+    CrmCampaign findByNumber(String number) {
+        CrmCampaign.findByNumberAndTenantId(number, TenantUtils.tenant)
     }
 
     CrmCampaign findByCode(String campaignCode, String handler = null) {
-        def result = CrmCampaign.createCriteria().list() {
+        // First try to find a campaign with the exact number or code.
+        def campaign = CrmCampaign.createCriteria().get() {
             eq('tenantId', TenantUtils.tenant)
-            isNotEmpty('codes')
-            if(handler) {
-                eq('handler', handler)
+            or {
+                eq('number', campaignCode)
+                eq('code', campaignCode)
             }
-        }
-        for (c in result) {
-            if (c.codes.find {
-                if(it[0] == '~') {
-                    def regex = it.substring(1)
-                    return (campaignCode.toLowerCase() =~ regex).find()
-                } else {
-                    return campaignCode.equalsIgnoreCase(it)
-                }
-            }) {
-                return c
+            if (handler) {
+                eq('handlerName', handler)
             }
+            fetchMode('status', FetchMode.JOIN)
+            order 'dateCreated', 'desc'
+            maxResults 1
         }
-        return null
+        if (campaign) {
+            return campaign.active ? campaign : null
+        }
+        // Find a campaign with code matching regular expression.
+        campaignCode = campaignCode.toLowerCase()
+        CrmCampaign.createCriteria().list() {
+            eq('tenantId', TenantUtils.tenant)
+            isNotNull('code')
+            if (handler) {
+                eq('handlerName', handler)
+            }
+            fetchMode('status', FetchMode.JOIN)
+            order 'dateCreated', 'desc'
+        }.find { (campaignCode =~ it.code).find() && it.active }
     }
+
+    def getCampaignResource(CrmCampaign crmCampaign, String resourceName) {
+        crmContentService.findResourcesByReference(crmCampaign, [title: '=' + resourceName]).find { it }
+    }
+
 }

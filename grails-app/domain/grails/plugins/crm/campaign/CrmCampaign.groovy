@@ -27,28 +27,30 @@ import grails.plugins.sequence.SequenceEntity
 @TenantEntity
 @AuditEntity
 @UuidEntity
-@SequenceEntity(property = "number", maxSize = 40, blank = false, unique = "tenantId")
+@SequenceEntity(property = "number", maxSize = 16, blank = false, unique = "tenantId")
 class CrmCampaign {
 
-    public static final List BIND_WHITELIST = ['number', 'name', 'description', 'status', 'parent']
+    public static final List BIND_WHITELIST = ['number', 'code', 'name', 'description', 'status', 'parent']
 
+    String code
     String name
     String description
 
     String username
 
-    String handler
+    String handlerName
     String handlerConfig
 
     CrmCampaignStatus status
     CrmCampaign parent
 
-    static hasMany = [children: CrmCampaign, codes: String]
+    static hasMany = [children: CrmCampaign]
 
     static constraints = {
+        code(maxSize: 20, nullable: true)
         name(maxSize: 80, blank: false)
         description(maxSize: 2000, nullable: true, widget: 'textarea')
-        handler(maxSize: 80, nullable: true)
+        handlerName(maxSize: 80, nullable: true)
         handlerConfig(maxSize: 102400, nullable: true, widget: 'textarea')
         username(maxSize: 80, nullable: true)
         parent(nullable: true)
@@ -56,12 +58,14 @@ class CrmCampaign {
 
     static mapping = {
         sort 'name': 'asc'
+        code index: 'crm_campaign_code_idx'
         number index: 'crm_campaign_number_idx'
         name index: 'crm_campaign_name_idx'
-        handler index: 'crm_campaign_handler_idx'
+        handlerName index: 'crm_campaign_handler_idx'
         children sort: 'number', 'asc'
-        codes joinTable: [name: 'crm_campaign_code', key: 'campaign_id', column: 'code'], cascade: 'all-delete-orphan'
     }
+
+    static transients = ['active']
 
     static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent'].asImmutable()
 
@@ -75,4 +79,7 @@ class CrmCampaign {
         name.toString()
     }
 
+    boolean isActive() {
+        status?.isActive()
+    }
 }

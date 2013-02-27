@@ -3,6 +3,8 @@ import grails.plugins.crm.campaign.GrailsCampaignClass
 import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
+    // Dependency group
+    def groupId = "grails.crm"
     // the plugin version
     def version = "1.0-SNAPSHOT"
     // the version or versions of Grails the plugin is designed for
