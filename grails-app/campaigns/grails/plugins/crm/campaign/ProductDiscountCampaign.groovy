@@ -67,7 +67,8 @@ class ProductDiscountCampaign {
                         }
                     }
                     if (total > (cfg.threshold ?: 0) && (cfg.condition?.toLowerCase() != CONDITION_ALL || found.size() == cfg.products.size())) {
-                        def discount = cfg.discount < 1 ? total * cfg.discount : cfg.discount
+                        def d = cfg.discount ? Double.valueOf(cfg.discount.toString()) : 0.0
+                        def discount = d < 1 ? total * d : d
                         reply = [remove: [[id: discountProduct.number]],
                                 add: [[id: discountProduct.number, quantity: 1, price: -discount, vat: 0.25, comment: discountProduct.description]]]
                     } else {
