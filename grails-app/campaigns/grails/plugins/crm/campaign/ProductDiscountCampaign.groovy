@@ -70,7 +70,7 @@ class ProductDiscountCampaign {
                         def d = cfg.discount ? Double.valueOf(cfg.discount.toString()) : 0.0
                         def discount = d < 1 ? total * d : d
                         reply = [remove: [[id: discountProduct.number]],
-                                add: [[id: discountProduct.number, quantity: 1, price: -discount, vat: 0.25, comment: discountProduct.description]]]
+                                add: [[id: discountProduct.number, quantity: 1, price: -discount, vat: discountProduct.vat, comment: discountProduct.description]]]
                     } else {
                         reply = [remove: [[id: discountProduct.number]]]
                     }
