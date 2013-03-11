@@ -30,7 +30,7 @@ class ProductDiscountCampaign {
     public static final String CONDITION_ALL = 'all'
 
     def crmCampaignService
-    def crmProductService
+    def crmProductService // TODO soft reference to service that we have no dependency on in BuildConfig.groovy
 
     void configure(CrmCampaign campaign, Closure arg) {
         def map = new ClosureToMapPopulator().populate(arg)
@@ -45,35 +45,46 @@ class ProductDiscountCampaign {
             def campaign = crmCampaignService.findByCode(data.campaign, GrailsNameUtils.getPropertyName(getClass()))
             if (campaign) {
                 def cfg = new JsonSlurper().parseText(campaign.handlerConfig)
-                def discountProduct = crmProductService.getProduct(cfg.discountProduct)
-                if (discountProduct) {
-                    def total = 0
-                    def found = [:]
-                    for (p in cart) {
-                        if (cfg.productGroups) {
-                            def crmProduct = crmProductService.getProduct(p.id)
-                            if (crmProduct && cfg.productGroups.contains(crmProduct.group.param)) {
-                                found[p.id] = true
-                            }
-                        } else if (cfg.products) {
-                            if (cfg.products.contains(p.id)) {
-                                found[p.id] = true
-                            }
-                        } else {
+                def discountProduct = cfg.discountProduct ? crmProductService.getProduct(cfg.discountProduct) : null
+                def cfgDiscount = cfg.discount ? Double.valueOf(cfg.discount.toString()) : 0.0
+                def cfgThreshold = cfg.threshold ? Double.valueOf(cfg.threshold.toString()) : 0.0
+                def total = 0
+                def found = [:]
+                for (p in cart) {
+                    if (cfg.productGroups) {
+                        def crmProduct = crmProductService.getProduct(p.id)
+                        if (crmProduct && cfg.productGroups.contains(crmProduct.group.param)) {
                             found[p.id] = true
                         }
-                        if (found[p.id]) {
-                            total += ((p.price ?: 0) * (p.quantity ?: 0))
+                    } else if (cfg.products) {
+                        if (cfg.products.contains(p.id)) {
+                            found[p.id] = true
                         }
+                    } else {
+                        found[p.id] = true
                     }
-                    if (total > (cfg.threshold ?: 0) && (cfg.condition?.toLowerCase() != CONDITION_ALL || found.size() == cfg.products.size())) {
-                        def d = cfg.discount ? Double.valueOf(cfg.discount.toString()) : 0.0
-                        def discount = d < 1 ? total * d : d
+                    if (found[p.id]) {
+                        total += ((p.price ?: 0) * (p.quantity ?: 0))
+                    }
+                    if (found[p.id] && !discountProduct) {
+                        if (!reply) {
+                            reply = [:]
+                        }
+                        reply.get('modify', []) << [id: p.id, discount: cfgDiscount]
+                    }
+                }
+                if (total > cfgThreshold && (cfg.condition?.toLowerCase() != CONDITION_ALL || found.size() == cfg.products.size())) {
+                    if (discountProduct) {
+                        def discount = cfgDiscount < 1 ? total * cfgDiscount : cfgDiscount
                         reply = [remove: [[id: discountProduct.number]],
                                 add: [[id: discountProduct.number, quantity: 1, price: -discount, vat: discountProduct.vat, comment: discountProduct.description]]]
-                    } else {
-                        reply = [remove: [[id: discountProduct.number]]]
                     }
+                } else if (discountProduct) {
+                    // Total cart value did not not reach threshold, remove discount product.
+                    reply = [remove: [[id: discountProduct.number]]]
+                } else {
+                    // Total cart value did not not reach threshold, cancel all discounts.
+                    reply = null
                 }
             }
         }
