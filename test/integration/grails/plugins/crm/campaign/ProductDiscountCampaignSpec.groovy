@@ -1,8 +1,23 @@
+/*
+ * Copyright (c) 2013 Goran Ehrsson.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package grails.plugins.crm.campaign
 
 import grails.plugin.spock.IntegrationSpec
 import groovy.json.JsonSlurper
-import spock.lang.Shared
 
 /**
  * Tests for campaign processor artifact "ProductDiscountCampaign".
@@ -78,9 +93,10 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
         campaign.handlerName == 'productDiscountCampaign'
 
         when: "apply the campaign on our shopping cart"
-        def cart = [[id: "3com", quantity: 2, price: 100],
-                [id: "mbp15", quantity: 1, price: 2000],
-                [id: "cat6", quantity: 5, price: 12]]
+        def crmProductService = productDiscountCampaign.crmProductService
+        def cart = [[id: "3com", quantity: 2, price: crmProductService.getProduct("3com").price],
+                [id: "mbp15", quantity: 1, price: crmProductService.getProduct("mbp15").price],
+                [id: "cat6", quantity: 5, price: crmProductService.getProduct("cat6").price]]
         def data = [cart: cart, campaign: "test1"]
         def reply = productDiscountCampaign.process(data)
 
@@ -112,9 +128,10 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
         campaign.handlerName == 'productDiscountCampaign'
 
         when: "apply the campaign on our shopping cart"
-        def cart = [[id: "3com", quantity: 2, price: 100],
-                [id: "mbp15", quantity: 1, price: 2000],
-                [id: "cat6", quantity: 5, price: 12]]
+        def crmProductService = productDiscountCampaign.crmProductService
+        def cart = [[id: "3com", quantity: 2, price: crmProductService.getProduct("3com").price],
+                [id: "mbp15", quantity: 1, price: crmProductService.getProduct("mbp15").price],
+                [id: "cat6", quantity: 5, price: crmProductService.getProduct("cat6").price]]
         def data = [cart: cart, campaign: "test2"]
         def reply = productDiscountCampaign.process(data)
 
@@ -147,9 +164,10 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
         campaign.handlerName == 'productDiscountCampaign'
 
         when: "apply the campaign on our shopping cart"
-        def cart = [[id: "3com", quantity: 2, price: 100],
-                [id: "mbp15", quantity: 1, price: 2000],
-                [id: "cat6", quantity: 5, price: 12]]
+        def crmProductService = productDiscountCampaign.crmProductService
+        def cart = [[id: "3com", quantity: 2, price: crmProductService.getProduct("3com").price],
+                [id: "mbp15", quantity: 1, price: crmProductService.getProduct("mbp15").price],
+                [id: "cat6", quantity: 5, price: crmProductService.getProduct("cat6").price]]
         def data = [cart: cart, campaign: "test3"]
         def reply = productDiscountCampaign.process(data)
 
