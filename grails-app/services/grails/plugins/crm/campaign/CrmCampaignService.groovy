@@ -179,6 +179,7 @@ class CrmCampaignService {
             fetchMode('status', FetchMode.JOIN)
             order 'dateCreated', 'desc'
             maxResults 1
+            cache true
         }
         if (campaign) {
             return campaign.active ? campaign : null
@@ -193,11 +194,12 @@ class CrmCampaignService {
             }
             fetchMode('status', FetchMode.JOIN)
             order 'dateCreated', 'desc'
+            cache true
         }.find { (campaignCode =~ it.code).find() && it.active }
     }
 
     def getCampaignResource(CrmCampaign crmCampaign, String resourceName) {
-        crmContentService.findResourcesByReference(crmCampaign, [title: '=' + resourceName]).find { it }
+        crmContentService.findResourcesByReference(crmCampaign, [name: '=' + resourceName]).find { it }
     }
 
 }

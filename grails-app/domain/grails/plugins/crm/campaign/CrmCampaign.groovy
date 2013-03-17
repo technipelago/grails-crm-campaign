@@ -63,6 +63,7 @@ class CrmCampaign {
         name index: 'crm_campaign_name_idx'
         handlerName index: 'crm_campaign_handler_idx'
         children sort: 'number', 'asc'
+        cache true
     }
 
     static transients = ['active']
