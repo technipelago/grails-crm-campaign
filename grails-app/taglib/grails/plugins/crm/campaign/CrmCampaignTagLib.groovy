@@ -11,23 +11,24 @@ class CrmCampaignTagLib {
 
     def grailsApplication
     def crmCampaignService
-    def groovyPagesTemplateEngine
 
     def campaign = { attrs, body ->
-        def tenant = attrs.tenant ?: (TenantUtils.tenant ?: grailsApplication.config.textTemplate.defaultTenant)
-        TenantUtils.withTenant(tenant) {
-            if (attrs.campaign) {
+        def tenant = attrs.tenant ?: (TenantUtils.tenant ?: grailsApplication.config.crm.content.include.tenant)
+        if (attrs.campaign) {
+            def resource = TenantUtils.withTenant(tenant) {
                 def crmCampaign = crmCampaignService.findByCode(attrs.campaign)
                 if (crmCampaign) {
-                    def resource = crmCampaignService.getCampaignResource(crmCampaign, attrs.name)
-                    if (resource) {
-                        def model = attrs.model ?: [:]
-                        groovyPagesTemplateEngine.createTemplate(resource.text, "${attrs.name}").make(pageScope.variables + model).writeTo(out)
-                        return
-                    }
+                    return crmCampaignService.getCampaignResource(crmCampaign, attrs.template)
                 }
+                null
             }
-            out << tt.html(attrs, body) // Fall back to text template.
+            if (resource) {
+                attrs.template = resource
+                out << crm.render(attrs, body)
+                return
+            }
         }
+
+        out << crm.render(attrs, body)
     }
 }
