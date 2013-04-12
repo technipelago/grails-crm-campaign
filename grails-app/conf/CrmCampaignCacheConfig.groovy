@@ -1,7 +1,7 @@
 import grails.plugins.crm.campaign.CrmCampaign
 import grails.plugins.crm.campaign.CrmCampaignStatus
 
-grails.cache.config = {
+config = {
     // Hibernate domain class second-level caches.
     domain {
         name CrmCampaign
