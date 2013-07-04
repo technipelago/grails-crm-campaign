@@ -28,7 +28,7 @@ grails.project.dependency.resolution = {
             export = false
         }
         test(":spock:0.7") { export = false }
-        test(":codenarc:0.17") { export = false }
+        test(":codenarc:0.18.1") { export = false }
 
         compile "grails.crm:crm-core:latest.integration"
         compile ":sequence-generator:latest.integration"

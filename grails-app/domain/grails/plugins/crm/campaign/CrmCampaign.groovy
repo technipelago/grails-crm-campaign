@@ -20,6 +20,9 @@ import grails.plugins.crm.core.AuditEntity
 import grails.plugins.crm.core.TenantEntity
 import grails.plugins.crm.core.UuidEntity
 import grails.plugins.sequence.SequenceEntity
+import groovy.time.Duration
+import groovy.time.TimeCategory
+import groovy.time.TimeDuration
 
 /**
  * Campaign project domain class.
@@ -41,6 +44,9 @@ class CrmCampaign {
     String handlerName
     String handlerConfig
 
+    Date startTime
+    Date endTime
+
     CrmCampaignStatus status
     CrmCampaign parent
 
@@ -54,6 +60,8 @@ class CrmCampaign {
         handlerConfig(maxSize: 102400, nullable: true, widget: 'textarea')
         username(maxSize: 80, nullable: true)
         parent(nullable: true)
+        startTime(nullable: true)
+        endTime(nullable: true, validator: { val, obj -> (val && obj.startTime) ? (val > obj.startTime) : null })
     }
 
     static mapping = {
@@ -62,13 +70,15 @@ class CrmCampaign {
         number index: 'crm_campaign_number_idx'
         name index: 'crm_campaign_name_idx'
         handlerName index: 'crm_campaign_handler_idx'
+        startTime index: 'crm_campaign_start_idx'
+        endTime index: 'crm_campaign_end_idx'
         children sort: 'number', 'asc'
         cache true
     }
 
-    static transients = ['active']
+    static transients = ['active', 'dates', 'duration']
 
-    static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent'].asImmutable()
+    static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent', 'startTime', 'endTime'].asImmutable()
 
     static taggable = true
     static attachmentable = true
@@ -76,11 +86,41 @@ class CrmCampaign {
     static relatable = true
     static auditable = true
 
+    def beforeValidate() {
+        if (!number) {
+            number = getNextSequenceNumber()
+        }
+    }
+
     String toString() {
         name.toString()
     }
 
-    boolean isActive() {
+    transient boolean isActive() {
         status?.isActive()
+    }
+
+    transient List<Date> getDates() {
+        def list = []
+        if (startTime) {
+            list << startTime
+        }
+        if (endTime) {
+            list << endTime
+        }
+        return list
+    }
+
+    transient Duration getDuration() {
+        Duration dur
+        if (startTime && endTime) {
+            use(TimeCategory) {
+                dur = endTime - startTime
+            }
+        } else {
+            dur = new TimeDuration(0, 0, 0, 0)
+        }
+
+        return dur
     }
 }

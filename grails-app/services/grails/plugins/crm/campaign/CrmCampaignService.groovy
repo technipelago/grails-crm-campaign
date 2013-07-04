@@ -17,8 +17,10 @@
 package grails.plugins.crm.campaign
 
 import grails.events.Listener
+import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
+import org.apache.commons.lang.StringUtils
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 import org.hibernate.FetchMode
 
@@ -95,23 +97,58 @@ class CrmCampaignService {
      * @return List of CrmCampaign domain instances
      */
     def listCampaigns(Map query, Map params) {
+
         CrmCampaign.createCriteria().list(params) {
+
             eq('tenantId', TenantUtils.tenant)
+
+            if (query.parent) {
+                parent {
+                    ilike('number', SearchUtils.wildcard(query.parent))
+                }
+            }
+
             if (query.number) {
                 or {
                     ilike('number', SearchUtils.wildcard(query.number))
                     ilike('code', SearchUtils.wildcard(query.number))
                 }
             }
+
             if (query.name) {
                 ilike('name', SearchUtils.wildcard(query.name))
             }
+
             if (query.status) {
                 status {
                     or {
                         ilike('name', SearchUtils.wildcard(query.status))
                         eq('param', query.status)
                     }
+                }
+            }
+
+            if (query.fromDate && query.toDate) {
+                def timezone = query.timezone ?: TimeZone.getDefault()
+                def d1 = query.fromDate instanceof Date ? query.fromDate : DateUtils.parseDate(query.fromDate, timezone)
+                def d2 = query.toDate instanceof Date ? query.toDate : DateUtils.parseDate(query.toDate, timezone)
+                or {
+                    between('startTime', d1, d2)
+                    between('endTime', d1, d2)
+                }
+            } else if (query.fromDate) {
+                def timezone = query.timezone ?: TimeZone.getDefault()
+                def d1 = DateUtils.parseDate(query.fromDate, timezone)
+                or {
+                    ge('startTime', d1)
+                    gt('endTime', d1)
+                }
+            } else if (query.toDate) {
+                def timezone = query.timezone ?: TimeZone.getDefault()
+                def d2 = DateUtils.parseDate(query.toDate, timezone)
+                or {
+                    lt('startTime', d2)
+                    le('endTime', d2)
                 }
             }
         }
@@ -139,8 +176,11 @@ class CrmCampaignService {
     }
 
     CrmCampaignStatus createCampaignStatus(Map params, boolean save = false) {
+        if (!params.param) {
+            params.param = StringUtils.abbreviate(params.name?.toLowerCase(), 20)
+        }
         def tenant = TenantUtils.tenant
-        def m = CrmCampaignStatus.findByNameAndTenantId(params.name, tenant)
+        def m = CrmCampaignStatus.findByParamAndTenantId(params.param, tenant)
         if (!m) {
             m = new CrmCampaignStatus(params)
             m.tenantId = tenant
