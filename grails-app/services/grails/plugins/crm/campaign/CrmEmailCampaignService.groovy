@@ -93,22 +93,4 @@ class CrmEmailCampaignService {
         }
     }
 
-    @Transactional
-    CrmResourceRef setEmailBody(CrmCampaign campaign, InputStream bodyContent, String contentType, Map params = [:]) {
-        def filename = contentType.contains('html') ? "body.html" : "body.txt"
-        def bodyTemplate = crmContentService.getAttachedResource(campaign, filename)
-        if (bodyTemplate) {
-            crmContentService.updateResource(bodyTemplate, bodyContent, contentType)
-        } else {
-            if (!params.title) {
-                params.title = "E-postmeddelandets innehåll"
-            }
-            if (!params.status) {
-                params.status = "published"
-            }
-            bodyTemplate = crmContentService.createResource(bodyContent, filename, -1, contentType, campaign, params)
-        }
-        bodyTemplate
-    }
-
 }

@@ -14,7 +14,7 @@ class EmailCampaign {
 
     void configure(CrmCampaign campaign, Map params) {
         campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
-        campaign.configuration = params.subMap(['sender', 'subject'])
+        campaign.configuration = params.subMap(['sender', 'subject', 'html', 'text', 'template', 'external'])
     }
 
     def process(data) {

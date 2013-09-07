@@ -15,6 +15,7 @@ class EmailCampaignSpec extends IntegrationSpec {
 
     def crmCampaignService
     def crmEmailCampaignService
+    def emailCampaign
 
     @Shared active
 
@@ -27,9 +28,12 @@ class EmailCampaignSpec extends IntegrationSpec {
     def "create recipients"() {
         when:
         def campaign = crmCampaignService.createCampaign(name: "Test", status: active, true)
-        def is = new ByteArrayInputStream("<h1>Hello Räksmörgås!</h1>".getBytes("UTF-8"))
-        crmEmailCampaignService.setEmailBody(campaign, is, 'text/html', [username: "test"])
-        is.close()
+        emailCampaign.configure(campaign) {
+            subject = "Integration test"
+            sender = "goran@technipelago.se"
+            html = """<h1>Hello Räksmörgås!</h1>"""
+            text = """Hello Räksmörgås!"""
+        }
 
         then:
         !campaign.hasErrors()
