@@ -8,5 +8,9 @@ target
 # Ignore packaged plugins
 *.zip
 
+# Ignore content repository
+/0
+
 stacktrace.log
 plugin.xml
+.DS_Store
