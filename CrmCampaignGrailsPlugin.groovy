@@ -22,13 +22,15 @@ class CrmCampaignGrailsPlugin {
     // Dependency group
     def groupId = "grails.crm"
     // the plugin version
-    def version = "1.0.7-SNAPSHOT"
+    def version = "1.2.0-SNAPSHOT"
     // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "2.0 > *"
+    def grailsVersion = "2.2 > *"
     // the other plugins this plugin depends on
     def dependsOn = [:]
+    def loadAfter = ['crmTags']
     // resources that are excluded from plugin packaging
     def pluginExcludes = [
+            "grails-app/domain/test/**",
             "grails-app/views/error.gsp"
     ]
     def watchedResources = [
@@ -43,14 +45,11 @@ class CrmCampaignGrailsPlugin {
     def description = '''\
 Campaign Management for Grails CRM
 '''
-
     def documentation = "http://grails.org/plugin/crm-campaign"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
-
-//    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
-//    def issueManagement = [ system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN" ]
-//    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
+    def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-campaign/issues"]
+    def scm = [url: "https://github.com/goeh/grails-crm-campaign"]
 
     def doWithWebDescriptor = { xml ->
         // TODO Implement additions to web.xml (optional), this event occurs before

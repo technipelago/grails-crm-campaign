@@ -32,30 +32,45 @@ class CrmCampaignResourceController {
     /**
      * Collect all images attached to a CrmCampaign and it's sub-campaigns.
      * @param id primary key of root CrmCampaign
+     * @param number number of root CrmCampaign
+     * @param code code of any CrmCampaign
      * @param t optional tenant id
      * @return render image list as JSON
      */
-    def images(final Long t, final Long id, final String number) {
+    def images(final Long t, final Long id, final String number, final String code) {
         if (crmContentService == null) {
             log.error "CrmCampaignResourceController#images($t, $id, $number) called from [${request.remoteAddr}], but the 'crm-content' plugin is not installed in this application!"
             response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE)
             return
         }
+
         final Long tenant = t ?: TenantUtils.tenant
-        CrmCampaign crmCampaign
+        final List<CrmCampaign> result = []
         if (id) {
-            crmCampaign = CrmCampaign.findByIdAndTenantId(id, tenant)
+            def crmCampaign = CrmCampaign.findByIdAndTenantId(id, tenant)
+            if (crmCampaign) {
+                result << crmCampaign
+            }
         } else if (number) {
-            crmCampaign = CrmCampaign.findByNumberAndTenantId(number, tenant)
+            def crmCampaign = CrmCampaign.findByNumberAndTenantId(number, tenant)
+            if (crmCampaign) {
+                result << crmCampaign
+            }
+        } else if (code) {
+            result.addAll(CrmCampaign.findAllByCodeAndTenantId(code, tenant, [sort: 'number', order: 'asc']))
         }
-        if (!crmCampaign) {
+
+        if (!(result || code)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND)
             return
         }
+
         final List mediaList = []
-        collectImages(crmCampaign, mediaList)
+        for (CrmCampaign crmCampaign in result) {
+            collectImages(crmCampaign, mediaList)
+        }
         // Default cache is public 10 minutes.
-        if(params.cache == null || params.boolean("cache")) {
+        if (params.cache == null || params.boolean("cache")) {
             WebUtils.defaultCache(response)
         } else {
             // if cache=false we cache 1 minute private.
@@ -84,11 +99,11 @@ class CrmCampaignResourceController {
                 if (md.contentType.startsWith('image/')) {
                     images << [id: r.id, name: r.name, title: r.title, campaign: crmCampaign.name,
                             contentType: md.contentType, length: md.bytes, modified: md.modified,
-                            uri: crm.createResourceLink(resource: r)]
+                            uri: crm.createResourceLink(resource: r)] + crmCampaign.configuration
                 }
             }
         }
-        for (child in crmCampaign.children) {
+        for (child in crmCampaign.children?.sort { it.number }) {
             collectImages(child, images)
         }
     }
@@ -100,6 +115,6 @@ class CrmCampaignResourceController {
      */
     private boolean isImage(final String name) {
         final String lowercaseName = name.toLowerCase()
-        lowercaseName.endsWith('.png') || lowercaseName.endsWith('.jpg') || lowercaseName.endsWith('.gif')
+        lowercaseName.endsWith('.png') || lowercaseName.endsWith('.jpg') || lowercaseName.endsWith('.jpeg') || lowercaseName.endsWith('.gif')
     }
 }

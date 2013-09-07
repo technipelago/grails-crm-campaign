@@ -20,6 +20,8 @@ import grails.plugins.crm.core.AuditEntity
 import grails.plugins.crm.core.TenantEntity
 import grails.plugins.crm.core.UuidEntity
 import grails.plugins.sequence.SequenceEntity
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import groovy.time.Duration
 import groovy.time.TimeCategory
 import groovy.time.TimeDuration
@@ -50,7 +52,7 @@ class CrmCampaign {
     CrmCampaignStatus status
     CrmCampaign parent
 
-    static hasMany = [children: CrmCampaign]
+    static hasMany = [children: CrmCampaign, target: CrmCampaignTarget]
 
     static constraints = {
         code(maxSize: 20, nullable: true)
@@ -65,7 +67,7 @@ class CrmCampaign {
     }
 
     static mapping = {
-        sort 'name': 'asc'
+        sort 'number': 'asc'
         code index: 'crm_campaign_code_idx'
         number index: 'crm_campaign_number_idx'
         name index: 'crm_campaign_name_idx'
@@ -73,10 +75,11 @@ class CrmCampaign {
         startTime index: 'crm_campaign_start_idx'
         endTime index: 'crm_campaign_end_idx'
         children sort: 'number', 'asc'
+        target sort: 'orderIndex', 'asc'
         cache true
     }
 
-    static transients = ['active', 'dates', 'duration']
+    static transients = ['active', 'dates', 'duration', 'configuration']
 
     static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent', 'startTime', 'endTime'].asImmutable()
 
@@ -90,6 +93,11 @@ class CrmCampaign {
         if (!number) {
             number = getNextSequenceNumber()
         }
+    }
+
+    def beforeDelete() {
+        CrmCampaign.executeUpdate("delete from CrmCampaignRecipient where campaign = ?", [this])
+        CrmCampaign.executeUpdate("delete from CrmEmailConfiguration where campaign = ?", [this])
     }
 
     String toString() {
@@ -122,5 +130,13 @@ class CrmCampaign {
         }
 
         return dur
+    }
+
+    Map getConfiguration() {
+        handlerConfig ? new JsonSlurper().parseText(handlerConfig) : [:]
+    }
+
+    void setConfiguration(Map cfg) {
+        handlerConfig = cfg ? JsonOutput.toJson(cfg) : null
     }
 }

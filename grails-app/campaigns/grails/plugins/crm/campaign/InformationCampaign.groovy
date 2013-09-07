@@ -16,13 +16,22 @@
 
 package grails.plugins.crm.campaign
 
+import grails.util.ClosureToMapPopulator
+import grails.util.GrailsNameUtils
+
 /**
  * Information Campaign contains no logic.
  * It's used to render campaign information on the web site.
  */
 class InformationCampaign {
+
     void configure(CrmCampaign campaign, Closure arg) {
-        null
+        configure(campaign, new ClosureToMapPopulator().populate(arg))
+    }
+
+    void configure(CrmCampaign campaign, Map params) {
+        campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
+        campaign.configuration = null
     }
 
     def process(data) {

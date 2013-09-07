@@ -20,6 +20,8 @@ import groovy.lang.Closure;
 
 import org.codehaus.groovy.grails.commons.AbstractInjectableGrailsClass;
 
+import java.util.Map;
+
 /**
  * @author Goran Ehrsson
  */
@@ -31,6 +33,10 @@ public class DefaultGrailsCampaignClass extends AbstractInjectableGrailsClass im
 
     public void configure(Object campaign, Closure dsl) {
         getMetaClass().invokeMethod(getReferenceInstance(), GrailsCampaignClass.CONFIGURE, new Object[]{campaign, dsl});
+    }
+
+    public void configure(Object campaign, Map<String, Object> params) {
+        getMetaClass().invokeMethod(getReferenceInstance(), GrailsCampaignClass.CONFIGURE, new Object[]{campaign, params});
     }
 
     public void process(Object data) {

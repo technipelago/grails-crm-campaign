@@ -19,6 +19,8 @@ package grails.plugins.crm.campaign;
 import groovy.lang.Closure;
 import org.codehaus.groovy.grails.commons.InjectableGrailsClass;
 
+import java.util.Map;
+
 /**
  *
  * @author Goran Ehrsson
@@ -30,5 +32,6 @@ public interface GrailsCampaignClass extends InjectableGrailsClass {
     public static final String PROCESS = "process";
 
     void configure(Object campaign, Closure dsl);
+    void configure(Object campaign, Map<String, Object> params);
     void process(Object data);
 }

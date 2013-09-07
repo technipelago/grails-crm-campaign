@@ -18,7 +18,6 @@ package grails.plugins.crm.campaign
 
 import grails.util.ClosureToMapPopulator
 import grails.util.GrailsNameUtils
-import groovy.json.JsonSlurper
 
 /**
  * A campaign processor that give product discounts in the web shop, based on rules.
@@ -33,9 +32,47 @@ class ProductDiscountCampaign {
     def crmProductService // TODO soft reference to service that we have no dependency on in BuildConfig.groovy
 
     void configure(CrmCampaign campaign, Closure arg) {
-        def map = new ClosureToMapPopulator().populate(arg)
+        configure(campaign, new ClosureToMapPopulator().populate(arg))
+    }
+
+    void configure(CrmCampaign campaign, Map params) {
+        Map cfg = [:]
+        if (params.productGroups) {
+            if (params.productGroups instanceof Collection) {
+                cfg.productGroups = params.productGroups
+            } else {
+                cfg.productGroups = params.productGroups.toString().split(',').toList()
+            }
+        }
+        if (params.products) {
+            if (params.products instanceof Collection) {
+                cfg.products = params.products
+            } else {
+                cfg.products = params.products.toString().split(',').toList()
+            }
+        }
+        if (params.discountProduct) {
+            cfg.discountProduct = params.discountProduct.toString()
+        }
+        if (params.discount) {
+            if (params.discount instanceof Number) {
+                cfg.discount = params.discount.doubleValue()
+            } else {
+                cfg.discount = Double.valueOf(params.discount.toString())
+            }
+        }
+        if (params.condition) {
+            cfg.condition = params.condition
+        }
+        if (params.treshold) {
+            if (params.treshold instanceof Number) {
+                cfg.treshold = params.treshold.doubleValue()
+            } else {
+                cfg.treshold = Double.valueOf(params.treshold.toString())
+            }
+        }
         campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
-        campaign.handlerConfig = groovy.json.JsonOutput.toJson(map)
+        campaign.configuration = cfg
     }
 
     def process(data) {
@@ -44,7 +81,7 @@ class ProductDiscountCampaign {
         if (cart && data.campaign) {
             def campaign = crmCampaignService.findByCode(data.campaign, GrailsNameUtils.getPropertyName(getClass()))
             if (campaign) {
-                def cfg = new JsonSlurper().parseText(campaign.handlerConfig)
+                def cfg = campaign.configuration
                 def discountProduct = cfg.discountProduct ? crmProductService.getProduct(cfg.discountProduct) : null
                 def cfgDiscount = cfg.discount ? Double.valueOf(cfg.discount.toString()) : 0.0
                 def cfgThreshold = cfg.threshold ? Double.valueOf(cfg.threshold.toString()) : 0.0

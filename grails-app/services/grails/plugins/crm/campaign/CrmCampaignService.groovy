@@ -97,10 +97,21 @@ class CrmCampaignService {
      * @return List of CrmCampaign domain instances
      */
     def listCampaigns(Map query, Map params) {
+        def tagged
+        if (query.tags) {
+            tagged = crmTagService.findAllIdByTag(CrmCampaign, query.tags) ?: [0L]
+        }
 
         CrmCampaign.createCriteria().list(params) {
 
             eq('tenantId', TenantUtils.tenant)
+            if (tagged) {
+                inList('id', tagged)
+            }
+
+            if (query.handlerName) {
+                eq('handlerName', query.handlerName)
+            }
 
             if (query.parent) {
                 parent {
@@ -198,11 +209,11 @@ class CrmCampaignService {
     }
 
     CrmCampaign getCampaign(Long id) {
-        CrmCampaign.get(id)
+        CrmCampaign.findByIdAndTenantId(id, TenantUtils.tenant, [cache: true])
     }
 
     CrmCampaign findByNumber(String number) {
-        CrmCampaign.findByNumberAndTenantId(number, TenantUtils.tenant)
+        CrmCampaign.findByNumberAndTenantId(number, TenantUtils.tenant, [cache: true])
     }
 
     CrmCampaign findByCode(String campaignCode, String handler = null) {

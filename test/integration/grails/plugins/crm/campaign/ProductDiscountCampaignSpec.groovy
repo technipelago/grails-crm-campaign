@@ -67,7 +67,7 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
         campaign.handlerConfig != null
 
         when: "parse the config"
-        def cfg = new JsonSlurper().parseText(campaign.handlerConfig)
+        def cfg = campaign.configuration
 
         then: "check that we get the same config as we put in there"
         cfg.productGroups == ['switch', 'router', 'firewall']
