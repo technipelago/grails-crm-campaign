@@ -15,6 +15,7 @@ grails.project.dependency.resolution = {
     }
     dependencies {
         test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
+        compile "org.ccil.cowan.tagsoup:tagsoup:1.2.1"
     }
 
     plugins {

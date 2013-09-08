@@ -26,6 +26,8 @@ import groovy.time.Duration
 import groovy.time.TimeCategory
 import groovy.time.TimeDuration
 
+import java.text.SimpleDateFormat
+
 /**
  * Campaign project domain class.
  */
@@ -52,7 +54,7 @@ class CrmCampaign {
     CrmCampaignStatus status
     CrmCampaign parent
 
-    static hasMany = [children: CrmCampaign, target: CrmCampaignTarget]
+    static hasMany = [children: CrmCampaign, target: CrmCampaignTarget, trackables: CrmCampaignTrackable]
 
     static constraints = {
         code(maxSize: 20, nullable: true)
@@ -79,7 +81,7 @@ class CrmCampaign {
         cache true
     }
 
-    static transients = ['active', 'dates', 'duration', 'configuration']
+    static transients = ['publicId', 'active', 'dates', 'duration', 'configuration']
 
     static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent', 'startTime', 'endTime'].asImmutable()
 
@@ -102,6 +104,10 @@ class CrmCampaign {
 
     String toString() {
         name.toString()
+    }
+
+    transient String getPublicId() {
+        return "${id.toString().length()}${id}${new SimpleDateFormat('yyMMddHHmmss').format(dateCreated)}"
     }
 
     transient boolean isActive() {
