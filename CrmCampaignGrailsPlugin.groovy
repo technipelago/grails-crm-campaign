@@ -19,16 +19,11 @@ import grails.plugins.crm.campaign.GrailsCampaignClass
 import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
-    // Dependency group
     def groupId = "grails.crm"
-    // the plugin version
-    def version = "1.2.0-SNAPSHOT"
-    // the version or versions of Grails the plugin is designed for
+    def version = "1.2.0"
     def grailsVersion = "2.2 > *"
-    // the other plugins this plugin depends on
     def dependsOn = [:]
     def loadAfter = ['crmTags']
-    // resources that are excluded from plugin packaging
     def pluginExcludes = [
             "grails-app/domain/test/**",
             "grails-app/views/error.gsp"
@@ -39,7 +34,7 @@ class CrmCampaignGrailsPlugin {
     ]
     def artefacts = [new CampaignArtefactHandler()]
 
-    def title = "Grails CRM Campaign Plugin" // Headline display name of the plugin
+    def title = "Grails CRM Campaign Plugin"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
@@ -51,10 +46,6 @@ Campaign Management for Grails CRM
     def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-campaign/issues"]
     def scm = [url: "https://github.com/goeh/grails-crm-campaign"]
 
-    def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before
-    }
-
     def doWithSpring = {
         // Configure campaign handlers
         def campaignClasses = application.campaignClasses
@@ -64,10 +55,6 @@ Campaign Management for Grails CRM
                 //bean.scope = "prototype"
             }
         }
-    }
-
-    def doWithDynamicMethods = { ctx ->
-        // TODO Implement registering dynamic methods to classes (optional)
     }
 
     def doWithApplicationContext = { applicationContext ->
