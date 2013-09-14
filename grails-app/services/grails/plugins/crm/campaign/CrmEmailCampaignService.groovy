@@ -1,5 +1,6 @@
 package grails.plugins.crm.campaign
 
+import groovy.transform.CompileStatic
 import groovy.xml.StreamingMarkupBuilder
 import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
@@ -16,16 +17,16 @@ class CrmEmailCampaignService {
     static transactional = false
 
     def grailsApplication
-    def sessionFactory
     def grailsLinkGenerator
     def jobManagerService
 
-    int createRecipients(CrmCampaign campaign, List<String> recipients) {
+    @CompileStatic
+    int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
         int count = 0
         CrmCampaign.withTransaction {
             for (String email in recipients) {
                 if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
-                    def r = new CrmCampaignRecipient(campaign: campaign, email: email).save(failOnError: true)
+                    new CrmCampaignRecipient(campaign: campaign, email: email).save(failOnError: true)
                     count++
                 }
             }

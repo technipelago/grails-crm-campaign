@@ -5,14 +5,14 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
 import org.springframework.dao.ConcurrencyFailureException
 
-import java.text.SimpleDateFormat
-
 /**
  * Track recipient activity.
  */
 class CrmCampaignTrackerController {
 
     def crmEmailCampaignService
+    def crmContentService
+    def crmContentRenderingService
 
     // TODO Use @Cacheable to cache the image bytes.
     private void renderImage() {
@@ -148,6 +148,22 @@ class CrmCampaignTrackerController {
                         contact: [firstName: '', lastName: '', name: '', username: '']]
                 body = configuration.html
             }
+            log.debug "Using configuration: $configuration"
+            final String template = configuration.template
+            if (template) {
+                def templateInstance = crmContentService.getContentByPath(template, campaign.tenantId)
+                if (templateInstance) {
+                    def attachments = []
+                    def model = [tenant: campaign.tenantId, recipient: recipient, campaign: campaign, cfg: configuration, attachments: attachments, body: body]
+                    def s = new StringWriter()
+                    log.debug "Using template $templateInstance"
+                    crmContentRenderingService.render(templateInstance, model, 'freemarker', s)
+                    body = s.toString()
+                } else {
+                    log.warn "Template [$template] not found"
+                }
+            }
+
             if (body) {
                 return [body: body, campaign: campaign, recipient: crmCampaignRecipient, cfg: configuration]
             }

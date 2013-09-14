@@ -1,5 +1,7 @@
 package grails.plugins.crm.campaign
 
+import groovy.transform.CompileStatic
+
 /**
  * Campaign Target Group features.
  */
@@ -7,10 +9,11 @@ class CrmCampaignTargetService {
 
     def selectionService
 
-    private String getUniqueName(Collection targets, String name) {
+    @CompileStatic
+    private String getUniqueName(final Collection<CrmCampaignTarget> targets, final String name) {
         int revision = 1
         String tmp = name
-        while (targets.find { it.name.toLowerCase() == tmp.toLowerCase() }) {
+        while (targets.find { CrmCampaignTarget t -> t.name.toLowerCase() == tmp.toLowerCase() }) {
             tmp = "$name ($revision)"
             revision++
         }

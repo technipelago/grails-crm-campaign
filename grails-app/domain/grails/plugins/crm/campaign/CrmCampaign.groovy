@@ -51,7 +51,7 @@ class CrmCampaign {
     Date startTime
     Date endTime
 
-    CrmCampaignStatus status
+    CrmCampaignStatus status // TODO Remove status, it's obsolete. startTime/endTime give us the status we need.
     CrmCampaign parent
 
     static hasMany = [children: CrmCampaign, target: CrmCampaignTarget, trackables: CrmCampaignTrackable]
@@ -98,8 +98,10 @@ class CrmCampaign {
     }
 
     def beforeDelete() {
-        CrmCampaign.executeUpdate("delete from CrmCampaignRecipient where campaign = ?", [this])
-        CrmCampaign.executeUpdate("delete from CrmEmailConfiguration where campaign = ?", [this])
+        CrmCampaign.withNewSession {
+            CrmCampaignRecipient.findAllByCampaign(this)*.delete(flush: true)
+            CrmEmailConfiguration.executeUpdate("delete from CrmEmailConfiguration where campaign = ?", [this])
+        }
     }
 
     String toString() {
@@ -111,11 +113,18 @@ class CrmCampaign {
     }
 
     transient boolean isActive() {
-        status?.isActive()
+        final Date now = new Date()
+        if (startTime && startTime > now) {
+            return false
+        }
+        if (endTime && endTime < now) {
+            return false
+        }
+        return true
     }
 
     transient List<Date> getDates() {
-        def list = []
+        final List<Date> list = []
         if (startTime) {
             list << startTime
         }

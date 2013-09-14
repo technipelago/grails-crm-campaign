@@ -28,7 +28,9 @@ class CrmCampaignTrackable {
     }
 
     def beforeDelete() {
-        CrmCampaignTracker.findAllByTrackable(this)*.delete()
+        CrmCampaignTrackable.withNewSession {
+            CrmCampaignTracker.findAllByTrackable(this)*.delete(flush: true)
+        }
     }
 
     String toString() {

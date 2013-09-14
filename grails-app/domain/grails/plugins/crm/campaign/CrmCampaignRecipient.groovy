@@ -41,8 +41,20 @@ class CrmCampaignRecipient {
         }
     }
 
+    static transients = ['address']
+
     def beforeDelete() {
-        CrmCampaignTracker.findAllByRecipient(this)*.delete()
+        CrmCampaignRecipient.withNewSession {
+            CrmCampaignTracker.findAllByRecipient(this)*.delete(flush: true)
+        }
+    }
+
+    transient void setAddress(String arg) {
+        email = address
+    }
+
+    transient String getAddress() {
+        email
     }
 
     String toString() {
