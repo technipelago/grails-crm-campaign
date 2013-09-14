@@ -1,6 +1,7 @@
 package grails.plugins.crm.campaign
 
 import groovy.xml.StreamingMarkupBuilder
+import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
 import org.hibernate.Cache
 import org.springframework.transaction.annotation.Transactional
@@ -17,15 +18,14 @@ class CrmEmailCampaignService {
     def grailsApplication
     def sessionFactory
     def grailsLinkGenerator
+    def jobManagerService
 
     int createRecipients(CrmCampaign campaign, List<String> recipients) {
         int count = 0
         CrmCampaign.withTransaction {
-            Cache cache = sessionFactory.getCache()
             for (String email in recipients) {
                 if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
                     def r = new CrmCampaignRecipient(campaign: campaign, email: email).save(failOnError: true)
-                    cache.evictEntity(CrmCampaignRecipient, r.ident())
                     count++
                 }
             }
@@ -80,15 +80,30 @@ class CrmEmailCampaignService {
     void sendToRecipient(final CrmCampaignRecipient r) {
         def reply
         try {
-            reply = event(for: "crmCampaign", topic: "sendMail", fork: false,
-                    data: [tenant: r.campaign.tenantId, campaign: r.campaign.id, id: r.id, email: r.email, ref: r.ref])?.value
+            reply = event(for: "crmCampaign", topic: "sendMail", fork: true,
+                    data: [tenant: r.campaign.tenantId, campaign: r.campaign.id, id: r.id, email: r.email, ref: r.ref]).value
         } catch (Exception e) {
-            log.error("Failed to send email to [${r.email}]", e)
+            log.error("Exception in sendMail event for [${r.email}]", e)
             reply = e.message ?: 'Unknown error'
         }
 
-        CrmCampaignRecipient.executeUpdate("update CrmCampaignRecipient set reason = ?, dateSent = ? where id = ?",
-                [reply, new Date(), r.id])
+        if (reply) {
+            int reasonLength = CrmCampaignRecipient.constraints.reason.maxSize
+            if (reply.length() > reasonLength) {
+                reply = StringUtils.abbreviate(reply, reasonLength)
+            }
+        }
+
+        try {
+            CrmCampaignRecipient.executeUpdate("update CrmCampaignRecipient set reason = ?, dateSent = ? where id = ?",
+                    [reply, new Date(), r.id])
+        } catch (Exception e) {
+            log.error("Failed to update recipient status [$reply] for [${r.email}]", e)
+            if (jobManagerService != null) {
+                jobManagerService.pauseTrigger("email", "crmCampaignEmail")
+                log.warn("Unscheduled quartz job email.crmCampaignEmail")
+            }
+        }
 
         if (!reply) {
             event(for: "crmCampaign", topic: "sentMail", fork: true,
