@@ -1,10 +1,8 @@
 package grails.plugins.crm.campaign
 
-import groovy.transform.CompileStatic
 import groovy.xml.StreamingMarkupBuilder
 import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
-import org.hibernate.Cache
 import org.springframework.transaction.annotation.Transactional
 
 import java.text.SimpleDateFormat
@@ -20,7 +18,6 @@ class CrmEmailCampaignService {
     def grailsLinkGenerator
     def jobManagerService
 
-    @CompileStatic
     int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
         int count = 0
         CrmCampaign.withTransaction {
