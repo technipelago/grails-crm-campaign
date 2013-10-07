@@ -16,17 +16,31 @@ class EmailCampaign {
 
     void configure(CrmCampaign campaign, Map params) {
         campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
-        campaign.configuration = params.subMap(['sender', 'subject', 'html', 'text', 'template', 'external'])
+        def cfg = params.subMap(['sender', 'senderName', 'subject', 'parts', 'template', 'external'])
+        def s = new StringBuilder()
+        for (part in cfg.parts) {
+            def p = params[part]
+            cfg[part] = p
+            if (p) {
+                s << p
+            }
+        }
+
+        // Scan hyperlinks in all parts and add CrmCampaignTrackable for each link found.
         try {
-            crmEmailCampaignService.collectHyperlinks(campaign, params.html)
+            crmEmailCampaignService.collectHyperlinks(campaign, s.toString())
         } catch (Exception e) {
             log.error "Failed to scan hyperlinks in campaign [$campaign]", e
         }
+
+        campaign.configuration = cfg
     }
 
     def process(data) {
-        def reply
-        // TODO process campaign...
-        reply
+        def recipient = CrmCampaignRecipient.get(data.id)
+        def reply = crmEmailCampaignService.render(recipient, [])
+        // TODO this is not tested and not used.
+        return reply
     }
+
 }

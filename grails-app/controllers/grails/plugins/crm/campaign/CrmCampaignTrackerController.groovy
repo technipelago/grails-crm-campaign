@@ -10,6 +10,7 @@ import org.springframework.dao.ConcurrencyFailureException
  */
 class CrmCampaignTrackerController {
 
+    def emailCampaign
     def crmEmailCampaignService
     def crmContentService
     def crmContentRenderingService
@@ -116,7 +117,7 @@ class CrmCampaignTrackerController {
         }
     }
 
-    def newsletter(String id, String recipient) {
+    def newsletter(String id, String recipientGuid) {
         try {
             def campaign = crmEmailCampaignService.getCampaignByPublicId(id)
             if (!campaign) {
@@ -124,51 +125,28 @@ class CrmCampaignTrackerController {
                 response.sendError(404)
                 return
             }
-            def configuration = campaign.configuration
-            def crmCampaignRecipient
-            def body
-            if (recipient) {
-                crmCampaignRecipient = CrmCampaignRecipient.findByGuid(recipient)
-                if (!crmCampaignRecipient) {
-                    log.warn("recipient not found [$recipient]")
+            def recipient
+            if (recipientGuid) {
+                recipient = CrmCampaignRecipient.findByGuid(recipientGuid)
+                if (!recipient) {
+                    log.warn("recipient not found [$recipientGuid]")
                     response.sendError(404)
                     return
                 }
-                if (crmCampaignRecipient.campaign != campaign) {
-                    log.warn "SECURITY: recipient[${crmCampaignRecipient.id}].campaign[$id] != campaign[${campaign.id}]"
+                if (recipient.campaign != campaign) {
+                    log.warn "SECURITY: recipient[${recipient.id}].campaign[$id] != campaign[${campaign.id}]"
                     response.sendError(403)
                     return
                 }
-                crmEmailCampaignService.link(recipient, null, request.remoteAddr)
-                body = crmEmailCampaignService.replaceHyperlinks(crmCampaignRecipient, configuration.html)
-            } else {
-                // Construct something that looks like a Recipient instance.
-                crmCampaignRecipient = [campaign: campaign, guid: java.util.UUID.randomUUID().toString(),
-                        email: '', telephone: '', dateCreated: campaign.dateCreated, dateSent: new Date(), dateOpened: new Date(),
-                        contact: [firstName: '', lastName: '', name: '', username: '']]
-                body = configuration.html
-            }
-            log.debug "Using configuration: $configuration"
-            final String template = configuration.template
-            if (template) {
-                def templateInstance = crmContentService.getContentByPath(template, campaign.tenantId)
-                if (templateInstance) {
-                    def attachments = []
-                    def model = [tenant: campaign.tenantId, recipient: recipient, campaign: campaign, cfg: configuration, attachments: attachments, body: body]
-                    def s = new StringWriter()
-                    log.debug "Using template $templateInstance"
-                    crmContentRenderingService.render(templateInstance, model, 'freemarker', s)
-                    body = s.toString()
-                } else {
-                    log.warn "Template [$template] not found"
-                }
+                crmEmailCampaignService.link(recipientGuid, null, request.remoteAddr)
             }
 
+            def body = crmEmailCampaignService.render(campaign, recipient)
             if (body) {
-                return [body: body, campaign: campaign, recipient: crmCampaignRecipient, cfg: configuration]
+                return [body: body, campaign: campaign, recipient: recipient, cfg: campaign.configuration]
             }
         } catch (Exception e) {
-            log.error("Failed to render newsletter ${id}/${recipient}", e)
+            log.error("Failed to render newsletter ${id}/${recipientGuid}", e)
         }
         response.sendError(404)
     }

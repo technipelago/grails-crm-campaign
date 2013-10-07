@@ -1,5 +1,6 @@
 package grails.plugins.crm.campaign
 
+import grails.plugins.crm.core.TenantUtils
 import groovy.xml.StreamingMarkupBuilder
 import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
@@ -17,6 +18,8 @@ class CrmEmailCampaignService {
     def grailsApplication
     def grailsLinkGenerator
     def jobManagerService
+    def crmContentService
+    def crmContentRenderingService
 
     int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
         int count = 0
@@ -252,5 +255,47 @@ class CrmEmailCampaignService {
             eq('dateCreated', date)
             cache true
         }
+    }
+
+    String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null) {
+        if (campaign == null) {
+            campaign = recipient?.campaign
+            if (campaign == null) {
+                throw new IllegalArgumentException("campaign must be specified")
+            }
+        }
+        final Long tenant = TenantUtils.tenant
+        final Map model = [tenant: tenant, campaign: campaign, recipient: recipient]
+        final Map cfg = campaign.configuration
+        model.putAll(cfg)
+
+        // If the campaign is using a main template, process the template with FreeMarker.
+        final String template = cfg.template
+        String content
+        if (template) {
+            def templateInstance = crmContentService.getContentByPath(template, tenant)
+            if (templateInstance) {
+                def s = new StringWriter()
+                crmContentRenderingService.render(templateInstance, model, 'freemarker', s)
+                content = s.toString()
+            } else {
+                log.warn("Template [${template}] referenced by campaign [${campaign.id}] not found")
+                return
+            }
+        } else {
+            def s = new StringBuilder()
+            for (p in cfg.parts) {
+                def c = cfg[p]
+                if (c) {
+                    if (s.length()) {
+                        s << '\n'
+                    }
+                    s << c
+                }
+            }
+            content = s.toString() // TODO parse content with Freemarker
+        }
+
+        recipient ? replaceHyperlinks(recipient, content) : content
     }
 }
