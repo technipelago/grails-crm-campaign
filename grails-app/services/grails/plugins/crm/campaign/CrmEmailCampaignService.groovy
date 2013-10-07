@@ -220,8 +220,8 @@ class CrmEmailCampaignService {
             }
         }
         if ((!href) && recipient) {
-            def campaign = recipient.campaign
-            href = grailsLinkGenerator.link(controller: 'crmCampaignTracker', action: 'newsletter', params: [id: campaign.id, r: recipient.id], absolute: true)
+            final String serverURL = grailsApplication.config.crm.web.url ?: grailsApplication.config.grails.serverURL
+            href = "$serverURL/newsletter/${recipient.campaign.publicId}/${recipient.guid}.htm".toString()
         }
         return href
     }
@@ -235,7 +235,7 @@ class CrmEmailCampaignService {
                     recipient.dateOptOut = new Date()
                     if (!recipient.dateOpened) {
                         // If user clicks the opt-out link in the message, it must be opened.
-                        recipient.dateOpened = recipient.dateOptOut// If user clicks the opt-out link in the message, it must be opened.
+                        recipient.dateOpened = recipient.dateOptOut
                     }
                     recipient.save(flush: true)
                 }
@@ -275,7 +275,7 @@ class CrmEmailCampaignService {
         if (template) {
             def templateInstance = crmContentService.getContentByPath(template, tenant)
             if (templateInstance) {
-                def s = new StringWriter()
+                final StringWriter s = new StringWriter()
                 crmContentRenderingService.render(templateInstance, model, 'freemarker', s)
                 content = s.toString()
             } else {
@@ -283,9 +283,9 @@ class CrmEmailCampaignService {
                 return
             }
         } else {
-            def s = new StringBuilder()
-            for (p in cfg.parts) {
-                def c = cfg[p]
+            final StringBuilder s = new StringBuilder()
+            for (String p in cfg.parts) {
+                String c = cfg[p]
                 if (c) {
                     if (s.length()) {
                         s << '\n'

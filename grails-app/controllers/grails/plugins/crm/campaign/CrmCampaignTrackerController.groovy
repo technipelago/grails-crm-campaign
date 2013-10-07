@@ -10,10 +10,7 @@ import org.springframework.dao.ConcurrencyFailureException
  */
 class CrmCampaignTrackerController {
 
-    def emailCampaign
     def crmEmailCampaignService
-    def crmContentService
-    def crmContentRenderingService
 
     // TODO Use @Cacheable to cache the image bytes.
     private void renderImage() {
@@ -91,11 +88,11 @@ class CrmCampaignTrackerController {
         }
     }
 
-    def optout() {
+    def optout(String id) {
         try {
-            def recipient = CrmCampaignRecipient.findByGuid(params.id)
+            def recipient = CrmCampaignRecipient.findByGuid(id)
             if (!recipient) {
-                log.warn("No such recipient ${params.id}")
+                log.warn("No such recipient ${id}")
                 response.sendError(404, "Not found")
                 return
             }
@@ -103,51 +100,70 @@ class CrmCampaignTrackerController {
             def configuration = campaign.configuration
             def css = configuration.style
             def opts = grailsApplication.config.crm.campaign.optout ?: [:]
-            if (request.method == "POST") {
+            if (request.post) {
                 def checked = params.list('opts')
                 if (checked || !opts) {
                     log.debug("Opt-Out for ${recipient}")
-                    recipient = crmEmailCampaignService.optOut(recipient, checked)
+                    crmEmailCampaignService.optOut(recipient, checked)
                 }
+                redirect action: "newsletter", params: [id: campaign.publicId, recipient: recipient.guid]
+                return
             }
             return [recipient: recipient, campaign: campaign, cfg: configuration, css: css, opts: opts]
         } catch (Exception e) {
-            log.error("Failed to opt-out ${params.id}", e)
+            log.error("Failed to opt-out ${id}", e)
             response.sendError(404, "Not found")
         }
     }
 
-    def newsletter(String id, String recipientGuid) {
+    def newsletter(String id, String recipient) {
         try {
-            def campaign = crmEmailCampaignService.getCampaignByPublicId(id)
-            if (!campaign) {
+            def crmCampaign = crmEmailCampaignService.getCampaignByPublicId(id)
+            if (!crmCampaign) {
                 log.warn("Campaign not found [$id]")
                 response.sendError(404)
                 return
             }
-            def recipient
-            if (recipientGuid) {
-                recipient = CrmCampaignRecipient.findByGuid(recipientGuid)
-                if (!recipient) {
-                    log.warn("recipient not found [$recipientGuid]")
+            def crmCampaignRecipient
+            if (recipient) {
+                crmCampaignRecipient = CrmCampaignRecipient.findByGuid(recipient)
+                if (!crmCampaignRecipient) {
+                    log.warn("recipient not found [$recipient]")
                     response.sendError(404)
                     return
                 }
-                if (recipient.campaign != campaign) {
-                    log.warn "SECURITY: recipient[${recipient.id}].campaign[$id] != campaign[${campaign.id}]"
+                if (crmCampaignRecipient.campaign != crmCampaign) {
+                    log.warn "SECURITY: recipient[${crmCampaignRecipient.id}].campaign[$id] != campaign[${crmCampaign.id}]"
                     response.sendError(403)
                     return
                 }
-                crmEmailCampaignService.link(recipientGuid, null, request.remoteAddr)
+                crmEmailCampaignService.link(recipient, null, request.remoteAddr)
             }
 
-            def body = crmEmailCampaignService.render(campaign, recipient)
+            def body = crmEmailCampaignService.render(crmCampaign, crmCampaignRecipient)
             if (body) {
-                return [body: body, campaign: campaign, recipient: recipient, cfg: campaign.configuration]
+                if (crmCampaignRecipient) {
+                    final StringBuilder s = new StringBuilder()
+                    // Body
+                    s << body
+                    // Footer
+                    s << createOptOutLink(crmCampaignRecipient)
+
+                    body = s.toString()
+                }
+                return [body: body, campaign: crmCampaign, recipient: crmCampaignRecipient, cfg: crmCampaign.configuration]
             }
         } catch (Exception e) {
-            log.error("Failed to render newsletter ${id}/${recipientGuid}", e)
+            log.error("Failed to render newsletter ${id}/${recipient}", e)
         }
         response.sendError(404)
+    }
+
+    private String createOptOutLink(CrmCampaignRecipient recipient) {
+        final String serverURL = grailsApplication.config.crm.web.url ?: grailsApplication.config.grails.serverURL
+        final String ooLink = "$serverURL/optout/${recipient.guid}.htm"
+        message(code: 'emailCampaign.optout.link',
+                default: '<div style="font-size:smaller;"><a href="{1}">Cancel subscription</a>.</div>',
+                args: [recipient.toString(), ooLink])
     }
 }

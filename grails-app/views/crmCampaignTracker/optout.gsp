@@ -3,18 +3,22 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title>Unsubscribe</title>
-    <g:if test="${css}">
-        <style type="text/css">
-        ${
-        css
-        }
-        </style>
-    </g:if>
+    <title><g:message code="emailCampaign.optout.title" default="Unsubscribe"/></title>
+    <style type="text/css">
+    #optout-dialog {
+        width: 400px;
+        margin: 100px auto;
+        padding: 20px;
+        border: 2px solid #a64b00;
+        color: #333333;
+        background-color: #ff9640;
+    }
+    ${css ?: ''}
+    </style>
 </head>
 
 <body>
-<div style="width: 400px; margin: 100px auto; padding: 20px; border: 2px solid #999;background-color: #db3835;">
+<div id="optout-dialog">
     <h2>${cfg.company?.encodeAsHTML()}</h2>
     <g:if test="${cfg.logo}">
         <img src="${cfg.logo}" alt="${cfg.company?.encodeAsHTML()}"/>
