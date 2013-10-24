@@ -20,7 +20,7 @@ import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
     def groupId = "grails.crm"
-    def version = "1.2.0"
+    def version = "1.2.1"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmTags']
@@ -40,11 +40,11 @@ class CrmCampaignGrailsPlugin {
     def description = '''\
 Campaign Management for Grails CRM
 '''
-    def documentation = "http://grails.org/plugin/crm-campaign"
+    def documentation = "https://github.com/technipelago/grails-crm-campaign"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
-    def issueManagement = [system: "github", url: "https://github.com/goeh/grails-crm-campaign/issues"]
-    def scm = [url: "https://github.com/goeh/grails-crm-campaign"]
+    def issueManagement = [system: "github", url: "https://github.com/technipelago/grails-crm-campaign/issues"]
+    def scm = [url: "https://github.com/technipelago/grails-crm-campaign"]
 
     def doWithSpring = {
         // Configure campaign handlers
@@ -52,7 +52,6 @@ Campaign Management for Grails CRM
         campaignClasses.each { campaignClass ->
             "${campaignClass.propertyName}"(campaignClass.clazz) { bean ->
                 bean.autowire = "byName"
-                //bean.scope = "prototype"
             }
         }
     }
@@ -77,12 +76,11 @@ Campaign Management for Grails CRM
             // Make sure the new selection class is registered.
             def campaignClass = application.addArtefact(GrailsCampaignClass.TYPE, event.source)
 
-            // Create the selection bean.
+            // Create the campaign bean.
             def bb = new BeanBuilder()
             bb.beans {
                 "${campaignClass.propertyName}"(campaignClass.clazz) { bean ->
                     bean.autowire = "byName"
-                    //bean.scope = "prototype"
                 }
             }
             bb.registerBeans(context)
