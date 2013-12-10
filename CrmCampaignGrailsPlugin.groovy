@@ -20,7 +20,7 @@ import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
     def groupId = "grails.crm"
-    def version = "1.2.1"
+    def version = "1.2.2"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmTags']
@@ -34,11 +34,11 @@ class CrmCampaignGrailsPlugin {
     ]
     def artefacts = [new CampaignArtefactHandler()]
 
-    def title = "Grails CRM Campaign Plugin"
+    def title = "GR8 CRM Campaign Plugin"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
-Campaign Management for Grails CRM
+Campaign Management for GR8 CRM
 '''
     def documentation = "https://github.com/technipelago/grails-crm-campaign"
     def license = "APACHE"
