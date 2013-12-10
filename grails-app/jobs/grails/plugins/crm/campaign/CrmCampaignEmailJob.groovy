@@ -10,10 +10,13 @@ class CrmCampaignEmailJob {
     def group = 'email'
     def concurrent = false
 
+    def grailsApplication
     def crmEmailCampaignService
 
     def execute() {
-        crmEmailCampaignService.send()
+        if (grailsApplication.config.crm.campaign.job.email.enabled) {
+            crmEmailCampaignService.send()
+        }
     }
 
 }
