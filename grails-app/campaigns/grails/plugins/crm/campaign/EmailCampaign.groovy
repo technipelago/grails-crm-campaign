@@ -26,11 +26,13 @@ class EmailCampaign {
             }
         }
 
-        // Scan hyperlinks in all parts and add CrmCampaignTrackable for each link found.
-        try {
-            crmEmailCampaignService.collectHyperlinks(campaign, s.toString())
-        } catch (Exception e) {
-            log.error "Failed to scan hyperlinks in campaign [$campaign]", e
+        if(! params.preview) {
+            // Scan hyperlinks in all parts and add CrmCampaignTrackable for each link found.
+            try {
+                crmEmailCampaignService.collectHyperlinks(campaign, s.toString())
+            } catch (Exception e) {
+                log.error "Failed to scan hyperlinks in campaign [$campaign]", e
+            }
         }
 
         campaign.configuration = cfg
