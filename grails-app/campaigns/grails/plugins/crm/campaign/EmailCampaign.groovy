@@ -18,7 +18,11 @@ class EmailCampaign {
         campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
         def cfg = params.subMap(['sender', 'senderName', 'subject', 'parts', 'template', 'external'])
         def s = new StringBuilder()
-        for (part in cfg.parts) {
+        def parts = cfg.parts
+        if(! (parts instanceof Collection)) {
+            parts = [parts]
+        }
+        for (part in parts) {
             def p = params[part]
             cfg[part] = p
             if (p) {
