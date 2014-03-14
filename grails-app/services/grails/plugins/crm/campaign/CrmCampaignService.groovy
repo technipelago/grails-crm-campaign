@@ -29,6 +29,8 @@ import org.hibernate.FetchMode
  */
 class CrmCampaignService {
 
+    def grailsApplication
+    def crmSecurityService
     def crmContentService
     def crmTagService
     def sequenceGeneratorService
@@ -62,10 +64,26 @@ class CrmCampaignService {
         // Disconnect all parent/child associations.
         CrmCampaign.findAllByTenantIdAndParentIsNotNull(tenant).each { it.parent = null; it.save() }
         // Remove all campaigns
-        CrmCampaign.findAllByTenantId(tenant)*.delete()
+        for (c in CrmCampaign.findAllByTenantId(tenant)) {
+            deleteCampaign(c)
+        }
         // Remove types and statuses.
         CrmCampaignStatus.findAllByTenantId(tenant)*.delete()
         log.warn("Deleted $count campaigns in tenant $tenant")
+    }
+
+    List<String> getEnabledCampaignHandlers() {
+        def enabledHandlers = []
+        def campaignClasses = grailsApplication.campaignClasses
+        def config = grailsApplication.config.crm.campaign
+        campaignClasses.each { campaignClass ->
+            def campaignHandler = campaignClass.propertyName
+            def enabled = config."$campaignHandler".enabled
+            if (enabled != false) {
+                enabledHandlers << campaignHandler
+            }
+        }
+        enabledHandlers
     }
 
     /**
@@ -186,6 +204,50 @@ class CrmCampaignService {
         return m
     }
 
+    CrmCampaign copyCampaign(CrmCampaign templateCampaign, boolean save = false) {
+        def tenant = TenantUtils.tenant
+        def props = ['handlerName', 'handlerConfig', 'startTime', 'endTime', 'status', 'parent'] +
+                CrmCampaign.BIND_WHITELIST
+        // Create a new campaign instance.
+        def crmCampaign = new CrmCampaign(tenantId: tenant)
+        // Copy domain properties
+        for (p in props) {
+            crmCampaign[p] = templateCampaign[p]
+        }
+        // If the source campaign was assigned to a user, assign the new campaign to the current user.
+        if (templateCampaign.username) {
+            def user = crmSecurityService.getCurrentUser()
+            crmCampaign.username = user?.username
+        }
+
+        // Number must be unique so we cannot copy it.
+        crmCampaign.number = null
+
+        // NOTE! child campaigns are not copied.
+
+        // Copy target
+        for (t in templateCampaign.target) {
+            def target = new CrmCampaignTarget(campaign: crmCampaign)
+            target.orderIndex = t.orderIndex
+            target.operation = t.operation
+            target.name = t.name
+            target.description = t.description
+            target.uriString = t.uriString
+
+            if (target.validate()) {
+                crmCampaign.addToTarget(target)
+            }
+        }
+
+        if (save) {
+            crmCampaign.save()
+        } else {
+            crmCampaign.validate()
+            crmCampaign.clearErrors()
+        }
+        return crmCampaign
+    }
+
     CrmCampaignStatus createCampaignStatus(Map params, boolean save = false) {
         if (!params.param) {
             params.param = StringUtils.abbreviate(params.name?.toLowerCase(), 20)
@@ -247,6 +309,21 @@ class CrmCampaignService {
             order 'dateCreated', 'desc'
             cache true
         }.find { (campaignCode =~ it.code).find() && it.active }
+    }
+
+    String deleteCampaign(CrmCampaign crmCampaign) {
+        def tenant = crmCampaign.tenantId
+        def user = crmSecurityService.getCurrentUser()
+        def eventPayload = [tenant: tenant, id: crmCampaign.id, user: user.username]
+        def resources = crmContentService.findResourcesByReference(crmCampaign)
+        for (r in resources) {
+            crmContentService.deleteReference(r)
+        }
+        def tombstone = crmCampaign.toString()
+        crmCampaign.delete(flush: true)
+        log.debug "Deleted campaign [$tombstone] in tenant [$tenant]"
+        event(for: 'crmCampaign', topic: 'deleted', data: eventPayload)
+        return tombstone
     }
 
     def getCampaignResource(CrmCampaign crmCampaign, String resourceName) {

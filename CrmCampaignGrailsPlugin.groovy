@@ -20,7 +20,7 @@ import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
     def groupId = "grails.crm"
-    def version = "1.2.3"
+    def version = "1.2.4"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmTags']
@@ -50,14 +50,27 @@ Campaign Management for GR8 CRM
         // Configure campaign handlers
         def campaignClasses = application.campaignClasses
         campaignClasses.each { campaignClass ->
-            "${campaignClass.propertyName}"(campaignClass.clazz) { bean ->
-                bean.autowire = "byName"
+            def campaignHandler = campaignClass.propertyName
+            def enabled  = application.config.crm.campaign."${campaignHandler}".enabled
+            if(enabled != false) {
+                "${campaignHandler}"(campaignClass.clazz) { bean ->
+                    bean.autowire = "byName"
+                }
             }
         }
     }
 
     def doWithApplicationContext = { applicationContext ->
-        println "Installed campaign handlers ${application.campaignClasses*.propertyName}"
+        def enabledHandlers = []
+        def campaignClasses = application.campaignClasses
+        campaignClasses.each { campaignClass ->
+            def campaignHandler = campaignClass.propertyName
+            def enabled  = application.config.crm.campaign."${campaignHandler}".enabled
+            if(enabled != false) {
+                enabledHandlers << campaignHandler
+            }
+        }
+        println "Installed campaign handlers $enabledHandlers"
     }
 
     def onChange = { event ->
