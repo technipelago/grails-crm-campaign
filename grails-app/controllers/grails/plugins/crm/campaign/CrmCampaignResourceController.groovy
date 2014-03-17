@@ -47,17 +47,17 @@ class CrmCampaignResourceController {
         final Long tenant = t ?: TenantUtils.tenant
         final List<CrmCampaign> result = []
         if (id) {
-            def crmCampaign = CrmCampaign.findByIdAndTenantId(id, tenant)
+            def crmCampaign = CrmCampaign.findByIdAndTenantId(id, tenant, [cache: true])
             if (crmCampaign) {
                 result << crmCampaign
             }
         } else if (number) {
-            def crmCampaign = CrmCampaign.findByNumberAndTenantId(number, tenant)
+            def crmCampaign = CrmCampaign.findByNumberAndTenantId(number, tenant, [cache: true])
             if (crmCampaign) {
                 result << crmCampaign
             }
         } else if (code) {
-            result.addAll(CrmCampaign.findAllByCodeAndTenantId(code, tenant, [sort: 'number', order: 'asc']))
+            result.addAll(CrmCampaign.findAllByCodeAndTenantId(code, tenant, [sort: 'number', order: 'asc', cache: true]))
         }
 
         if (!(result || code)) {
