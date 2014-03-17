@@ -1,6 +1,7 @@
 package grails.plugins.crm.campaign
 
 import grails.plugins.crm.core.TenantUtils
+import org.apache.commons.io.FilenameUtils
 
 /**
  * Campaign Tags.
@@ -18,14 +19,12 @@ class CrmCampaignTagLib {
             def resource = TenantUtils.withTenant(tenant) {
                 def crmCampaign = crmCampaignService.findByCode(attrs.campaign)
                 if (crmCampaign) {
-                    return crmCampaignService.getCampaignResource(crmCampaign, attrs.template)
+                    return crmCampaignService.getCampaignResource(crmCampaign, FilenameUtils.getName(attrs.template))
                 }
                 null
             }
             if (resource) {
                 attrs.template = resource
-                out << crm.render(attrs, body)
-                return
             }
         }
 
