@@ -298,4 +298,19 @@ class CrmEmailCampaignService {
 
         recipient ? replaceHyperlinks(recipient, content) : content
     }
+
+    Map getStatistics(CrmCampaign crmCampaign) {
+        def props = ['dateCreated', 'dateSent', 'dateOpened', 'dateOptOut', 'dateBounced']
+        def result = CrmCampaignRecipient.createCriteria().get() {
+            eq('campaign', crmCampaign)
+            projections {
+                for(p in props) {
+                    count(p)
+                }
+            }
+            cache true
+        }
+
+        [props, result].transpose().collectEntries { it }
+    }
 }
