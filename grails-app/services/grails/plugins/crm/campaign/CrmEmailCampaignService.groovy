@@ -16,19 +16,17 @@ class CrmEmailCampaignService {
     static transactional = false
 
     def grailsApplication
-    def grailsLinkGenerator
     def jobManagerService
     def crmContentService
     def crmContentRenderingService
 
+    @Transactional
     int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
         int count = 0
-        CrmCampaign.withTransaction {
-            for (String email in recipients) {
-                if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
-                    new CrmCampaignRecipient(campaign: campaign, email: email).save(failOnError: true)
-                    count++
-                }
+        for (String email in recipients) {
+            if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
+                new CrmCampaignRecipient(campaign: campaign, email: email).save(failOnError: true)
+                count++
             }
         }
         return count
@@ -36,7 +34,8 @@ class CrmEmailCampaignService {
 
     def send(CrmCampaign campaign = null) {
         final Date now = new Date()
-        final List<CrmCampaignRecipient> result = CrmCampaignRecipient.createCriteria().list([max: 250]) { // 1500 email / hour.
+        final List<CrmCampaignRecipient> result = CrmCampaignRecipient.createCriteria().list([max: 500]) {
+            // 3000 email / hour.
             isNull('dateSent')
             isNull('reason')
             delegate.campaign {
@@ -68,8 +67,9 @@ class CrmEmailCampaignService {
             log.debug "Found [${result.size()}] pending recipients"
         }
 
-        // 300 ms between each email means 2 minutes processing every 10 minutes.
-        def sleep = grailsApplication.config.crm.campaign.email.sleep ?: 300L
+        // Be nice to the mail server and throttle emails.
+        // 150 ms between each email means 2 minutes processing every 10 minutes.
+        def sleep = grailsApplication.config.crm.campaign.email.sleep ?: 150L
         def proxy = grailsApplication.mainContext.getBean('crmEmailCampaignService')
         for (CrmCampaignRecipient r in result) {
             proxy.sendToRecipient(r)
@@ -81,7 +81,7 @@ class CrmEmailCampaignService {
     void sendToRecipient(final CrmCampaignRecipient r) {
         def reply
         try {
-            reply = event(for: "crmCampaign", topic: "sendMail", fork: true,
+            reply = event(for: "crmCampaign", topic: "sendMail", fork: false,
                     data: [tenant: r.campaign.tenantId, campaign: r.campaign.id, id: r.id, email: r.email, ref: r.ref]).value
         } catch (Exception e) {
             log.error("Exception in sendMail event for [${r.email}]", e)
@@ -242,7 +242,7 @@ class CrmEmailCampaignService {
             }
             event(for: "crmCampaign", topic: "optout", fork: true,
                     data: [tenant: recipient.campaign.tenantId, campaign: recipient.campaign.id,
-                            id: recipient.id, email: recipient.email, ref: recipient.ref, tags: tags])
+                           id    : recipient.id, email: recipient.email, ref: recipient.ref, tags: tags])
         }
     }
 
@@ -304,7 +304,7 @@ class CrmEmailCampaignService {
         def result = CrmCampaignRecipient.createCriteria().get() {
             eq('campaign', crmCampaign)
             projections {
-                for(p in props) {
+                for (p in props) {
                     count(p)
                 }
             }
