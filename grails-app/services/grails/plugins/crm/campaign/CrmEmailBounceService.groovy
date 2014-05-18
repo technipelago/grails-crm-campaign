@@ -1,5 +1,6 @@
 package grails.plugins.crm.campaign
 
+import grails.plugins.crm.core.TenantUtils
 import grails.plugins.crm.tags.CrmTagLink
 import groovy.transform.CompileStatic
 import org.apache.commons.lang.StringUtils
@@ -53,6 +54,9 @@ class CrmEmailBounceService {
                     if (email.find()) {
                         def recipient = CrmCampaignRecipient.createCriteria().get() {
                             eq('email', email.group())
+                            campaign {
+                                eq('tenantId', TenantUtils.tenant)
+                            }
                             order 'dateSent', 'desc'
                             maxResults 1
                         }
@@ -75,6 +79,7 @@ class CrmEmailBounceService {
                                                 reference.email = null
                                             }
                                             reference.save()
+                                            log.debug "Tagged [$reference] with [$tag]"
                                         } else {
                                             log.warn("Email recipient [${recipient.ref}] not found")
                                         }

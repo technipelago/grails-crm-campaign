@@ -29,5 +29,6 @@ environments {
     test {
         grails.mail.port = com.icegreen.greenmail.util.ServerSetupTest.SMTP.port
         grails.serverURL = "http://localhost:8080/${appName}"
+        crm.campaign.email.bounce.tag = 'bounced'
     }
 }

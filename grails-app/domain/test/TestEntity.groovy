@@ -14,6 +14,8 @@ class TestEntity {
         age(nullable: true)
     }
 
+    static taggable = true
+
     String toString() {
         name
     }

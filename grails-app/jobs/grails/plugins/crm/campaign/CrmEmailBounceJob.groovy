@@ -1,4 +1,7 @@
 package grails.plugins.crm.campaign
+
+import grails.plugins.crm.core.TenantUtils
+
 /**
  * Read bounced email messages and try to find and update the matching Recipient.
  */
@@ -20,9 +23,12 @@ class CrmEmailBounceJob {
             final Integer port = config.crm.campaign.email.bounce.port ?: 143
             final String username = config.crm.campaign.email.bounce.imap.username?.toString()
             final String password = config.crm.campaign.email.bounce.imap.password?.toString()
+            final Long tenant = config.crm.campaign.email.bounce.tenant ?: 1L
 
             if (host && username && password) {
-                crmEmailBounceService.scan(host, port, username, password)
+                TenantUtils.withTenant(tenant) {
+                    crmEmailBounceService.scan(host, port, username, password)
+                }
             } else {
                 log.warn("No mail account configured for email bounce processing")
             }

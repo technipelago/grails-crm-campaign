@@ -5,6 +5,7 @@ import com.icegreen.greenmail.util.GreenMail
 import com.icegreen.greenmail.util.GreenMailUtil
 import com.icegreen.greenmail.util.ServerSetupTest
 import grails.plugin.spock.IntegrationSpec
+import test.TestEntity
 
 import javax.mail.Message
 import javax.mail.Session
@@ -94,9 +95,10 @@ class EmailCampaignSpec extends IntegrationSpec {
 
     def "bounce tracking"() {
         given:
+        def person = new TestEntity(name: "Joe Spammer", postalCode: "12345", city: "Spam City", age: 42).save(failOnError: true)
         def active = crmCampaignService.createCampaignStatus(name: 'Active', true)
         def campaign = crmCampaignService.createCampaign(name: "Test", status: active, true)
-        def fakeRecipient = new CrmCampaignRecipient(campaign: campaign, email: 'problem@foo.com', dateSent: new Date()).save(failOnError: true)
+        def fakeRecipient = new CrmCampaignRecipient(campaign: campaign, ref: 'testEntity@' + person.id, email: 'problem@foo.com', dateSent: new Date()).save(failOnError: true)
         def mailServer = new GreenMail(ServerSetupTest.IMAP);
         mailServer.start();
 
@@ -137,5 +139,6 @@ delete your own text from the attached returned message.
         then:
         fakeRecipient.dateBounced != null
         fakeRecipient.reason != null
+        person.getTagValue() == ['bounced']
     }
 }
