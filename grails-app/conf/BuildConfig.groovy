@@ -16,6 +16,8 @@ grails.project.dependency.resolution = {
     dependencies {
         test "org.spockframework:spock-grails-support:0.7-groovy-2.0"
         compile "org.ccil.cowan.tagsoup:tagsoup:1.2.1"
+        compile "javax.mail:javax.mail-api:1.5.1"
+        runtime "com.sun.mail:javax.mail:1.5.1"
     }
 
     plugins {
@@ -29,6 +31,9 @@ grails.project.dependency.resolution = {
         test(":spock:0.7") {
             export = false
             exclude "spock-grails-support"
+        }
+        test(":mail:1.0.5", ":greenmail:1.3.4") {
+            export = false
         }
         test(":codenarc:0.18.1") { export = false }
         test(":code-coverage:1.2.6") { export = false }
