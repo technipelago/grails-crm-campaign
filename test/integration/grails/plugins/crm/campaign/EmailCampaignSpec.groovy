@@ -96,7 +96,7 @@ class EmailCampaignSpec extends IntegrationSpec {
         given:
         def active = crmCampaignService.createCampaignStatus(name: 'Active', true)
         def campaign = crmCampaignService.createCampaign(name: "Test", status: active, true)
-        def fakeRecipient = new CrmCampaignRecipient(campaign: campaign, email: 'test@foo.com', dateSent: new Date()).save(failOnError: true)
+        def fakeRecipient = new CrmCampaignRecipient(campaign: campaign, email: 'problem@foo.com', dateSent: new Date()).save(failOnError: true)
         def mailServer = new GreenMail(ServerSetupTest.IMAP);
         mailServer.start();
 
@@ -120,7 +120,7 @@ delete your own text from the attached returned message.
 
                   The mail system
 
-<test@foo.com>: host
+<problem@foo.com>: host
   spamhaus.foo.com[0.0.0.0] said: 550 5.7.1 Service
   unavailable; Client host [127.0.0.1] blocked using Spamhaus; To request
   removal from this list see http://www.spamhaus.org/lookup.lasso (in reply

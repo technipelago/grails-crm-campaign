@@ -3,7 +3,7 @@ package grails.plugins.crm.campaign
  * Read bounced email messages and try to find and update the matching Recipient.
  */
 class CrmEmailBounceJob {
-    // wait 15 minutes before first timeout, then execute job every hour.
+    // wait 15 minutes before first timeout, then execute job every four hours.
     static triggers = { simple(name: 'emailBouncer', startDelay: 1000 * 60 * 25, repeatInterval: 1000 * 60 * 60 * 4) }
 
     def group = 'email'
