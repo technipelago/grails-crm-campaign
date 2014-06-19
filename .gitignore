@@ -11,6 +11,8 @@ target
 # Ignore content repository
 /0
 
+/cobertura.ser
+
 stacktrace.log
 plugin.xml
 .DS_Store
