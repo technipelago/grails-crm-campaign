@@ -19,8 +19,8 @@ import grails.plugins.crm.campaign.GrailsCampaignClass
 import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
-    def groupId = "grails.crm"
-    def version = "1.2.7"
+    def groupId = ""
+    def version = "2.0.0"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmTags']
@@ -34,17 +34,33 @@ class CrmCampaignGrailsPlugin {
     ]
     def artefacts = [new CampaignArtefactHandler()]
 
-    def title = "GR8 CRM Campaign Plugin"
+    def title = "GR8 CRM Campaign Services"
     def author = "Goran Ehrsson"
     def authorEmail = "goran@technipelago.se"
     def description = '''\
-Campaign Management for GR8 CRM
+This plugin provide storage and services for managing campaigns in GR8 CRM based applications.
+A campaign is something that has a message and a target group,
+for example an email campaign, a product discount or a web site banner.
+Custom plugins can provide other campaign types with Grails artifacts.
 '''
-    def documentation = "https://github.com/technipelago/grails-crm-campaign"
+    def documentation = "http://gr8crm.github.io/plugins/crm-campaign/"
     def license = "APACHE"
     def organization = [name: "Technipelago AB", url: "http://www.technipelago.se/"]
     def issueManagement = [system: "github", url: "https://github.com/technipelago/grails-crm-campaign/issues"]
     def scm = [url: "https://github.com/technipelago/grails-crm-campaign"]
+
+    def features = {
+        crmCampaign {
+            description "Campaign Management"
+            link controller: "crmCampaign", action: "index"
+            permissions {
+                guest "crmCampaign:index,list,show"
+                partner "crmCampaign:index,list,show"
+                user "crmCampaign:*"
+                admin "crmCampaign,crmCampaignStatus:*", "productDiscountCampaign,informationCampaign:edit"
+            }
+        }
+    }
 
     def doWithSpring = {
         // Configure campaign handlers
@@ -74,9 +90,6 @@ Campaign Management for GR8 CRM
     }
 
     def onChange = { event ->
-        // TODO Implement code that is executed when any artefact that this plugin is
-        // watching is modified and reloaded. The event contains: event.source,
-        // event.application, event.manager, event.ctx, and event.plugin.
         if (application.isCampaignClass(event.source)) {
             log.debug "Campaign ${event.source} modified!"
 

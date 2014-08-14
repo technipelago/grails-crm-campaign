@@ -1,15 +1,13 @@
-grails.project.work.dir = "target"
-
-grails.project.repos.default = "crm"
+grails.project.class.dir = "target/classes"
+grails.project.test.class.dir = "target/test-classes"
+grails.project.test.reports.dir = "target/test-reports"
+grails.project.target.level = 1.6
 
 grails.project.dependency.resolution = {
     inherits("global") {}
     log "warn"
     legacyResolve false
     repositories {
-        grailsHome()
-        mavenRepo "http://labs.technipelago.se/repo/plugins-releases-local/"
-        mavenRepo "http://labs.technipelago.se/repo/crm-releases-local/"
         grailsCentral()
         mavenCentral()
     }
@@ -32,16 +30,17 @@ grails.project.dependency.resolution = {
             export = false
             exclude "spock-grails-support"
         }
-        test(":mail:1.0.5", ":greenmail:1.3.4") {
+        test(":mail:1.0.7", ":greenmail:1.3.4") {
             export = false
         }
-        test(":codenarc:0.18.1") { export = false }
+        test(":codenarc:0.21") { export = false }
         test(":code-coverage:1.2.7") { export = false }
 
-        compile ":sequence-generator:latest.integration"
-        compile "grails.crm:crm-core:latest.integration"
-        compile "grails.crm:crm-content:latest.integration"
-        runtime "grails.crm:crm-tags:latest.integration"
-        runtime ":selection:latest.integration"
+        compile ":sequence-generator:1.0"
+        compile ":selection:0.9.7"
+
+        compile ":crm-core:2.0.1"
+        compile ":crm-content:2.0.0"
+        compile ":crm-tags:2.0.0"
     }
 }
