@@ -19,8 +19,8 @@ import grails.plugins.crm.campaign.GrailsCampaignClass
 import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
-    def groupId = ""
-    def version = "2.0.0"
+    def groupId = "grails.crm"
+    def version = "1.3.0"
     def grailsVersion = "2.2 > *"
     def dependsOn = [:]
     def loadAfter = ['crmTags']

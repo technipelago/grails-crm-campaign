@@ -39,7 +39,7 @@ grails.project.dependency.resolution = {
         compile ":sequence-generator:1.0"
         compile ":selection:0.9.7"
 
-        compile ":crm-core:2.0.1"
+        compile ":crm-core:2.0.2"
         compile ":crm-content:2.0.0"
         compile ":crm-tags:2.0.0"
     }
