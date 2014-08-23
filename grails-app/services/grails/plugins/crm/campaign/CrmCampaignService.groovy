@@ -23,6 +23,7 @@ import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
 import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
 import org.hibernate.FetchMode
+import grails.plugins.selection.Selectable
 
 /**
  * Campaign Services.
@@ -92,6 +93,7 @@ class CrmCampaignService {
      * @param params pagination parameters
      * @return List of CrmCampaign domain instances
      */
+    @Selectable
     def list(Map params = [:]) {
         listCampaigns([:], params)
     }
@@ -103,6 +105,7 @@ class CrmCampaignService {
      * @param params pagination parameters
      * @return List of CrmCampaign domain instances
      */
+    @Selectable
     def list(Map query, Map params) {
         listCampaigns(query, params)
     }
