@@ -37,7 +37,7 @@ grails.project.dependency.resolution = {
         test(":code-coverage:1.2.7") { export = false }
 
         compile ":sequence-generator:1.0"
-        compile ":selection:0.9.7"
+        compile ":selection:0.9.8"
 
         compile ":crm-core:2.0.2"
         compile ":crm-content:2.0.0"
