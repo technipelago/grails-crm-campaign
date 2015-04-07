@@ -16,7 +16,7 @@
 
 package grails.plugins.crm.campaign
 
-import grails.plugin.spock.IntegrationSpec
+import grails.test.spock.IntegrationSpec
 import groovy.json.JsonSlurper
 
 /**

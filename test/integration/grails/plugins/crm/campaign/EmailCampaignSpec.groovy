@@ -4,7 +4,7 @@ import com.icegreen.greenmail.user.GreenMailUser
 import com.icegreen.greenmail.util.GreenMail
 import com.icegreen.greenmail.util.GreenMailUtil
 import com.icegreen.greenmail.util.ServerSetupTest
-import grails.plugin.spock.IntegrationSpec
+import grails.test.spock.IntegrationSpec
 import test.TestEntity
 
 import javax.mail.Message
