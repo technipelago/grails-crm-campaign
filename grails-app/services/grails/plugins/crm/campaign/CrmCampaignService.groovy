@@ -21,9 +21,10 @@ import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import org.apache.commons.lang.StringUtils
-import org.codehaus.groovy.grails.web.metaclass.BindDynamicMethod
+import org.grails.databinding.SimpleMapDataBindingSource
 import org.hibernate.FetchMode
 import grails.plugins.selection.Selectable
+import org.springframework.web.multipart.MultipartFile
 
 /**
  * Campaign Services.
@@ -31,22 +32,32 @@ import grails.plugins.selection.Selectable
 class CrmCampaignService {
 
     def grailsApplication
+    def grailsWebDataBinder
     def crmSecurityService
     def crmContentService
     def crmTagService
     def sequenceGeneratorService
+    def messageSource
 
     @Listener(namespace = "crmCampaign", topic = "enableFeature")
     def enableFeature(event) {
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
-        def tenant = event.tenant
-        TenantUtils.withTenant(tenant) {
+        def tenant = crmSecurityService.getTenantInfo(event.tenant)
+        def locale = tenant.locale
+        TenantUtils.withTenant(tenant.id) {
             crmTagService.createTag(name: CrmCampaign.name, multiple: true)
             sequenceGeneratorService.initSequence(CrmCampaign, null, tenant, 1, "%s")
-            createCampaignStatus(orderIndex: 1, name: "Planerad", param: "pending").save(failOnError: true)
-            createCampaignStatus(orderIndex: 2, name: "Aktiv", param: "active").save(failOnError: true)
-            createCampaignStatus(orderIndex: 9, name: "Avslutad", param: "closed").save(failOnError: true)
+            createCampaignStatus(orderIndex: 1, param: 'pending',
+                    name: getLocalizedName('crmCampaignStatus.name.pending', 'Pending', locale),).save(failOnError: true)
+            createCampaignStatus(orderIndex: 2, param: 'active',
+                    name: getLocalizedName('crmCampaignStatus.name.active', 'Active', locale),).save(failOnError: true)
+            createCampaignStatus(orderIndex: 9, param: 'closed',
+                    name: getLocalizedName('crmCampaignStatus.name.closed', 'Closed', locale),).save(failOnError: true)
         }
+    }
+
+    private String getLocalizedName(String code, String fallback, Locale locale) {
+        messageSource.getMessage(code, null, fallback, locale)
     }
 
     @Listener(namespace = "crmTenant", topic = "requestDelete")
@@ -191,8 +202,7 @@ class CrmCampaignService {
         def m = CrmCampaign.findByNumberAndTenantId(params.number, tenant)
         if (!m) {
             m = new CrmCampaign()
-            def args = [m, params, [include: CrmCampaign.BIND_WHITELIST]]
-            new BindDynamicMethod().invoke(m, 'bind', args.toArray())
+            grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmCampaign.BIND_WHITELIST, null, null)
             m.tenantId = tenant
             if (!m.status) {
                 m.status = CrmCampaignStatus.findAllByTenantId(tenant, [sort: 'orderIndex', order: 'asc']).find { it }
@@ -327,6 +337,27 @@ class CrmCampaignService {
         log.debug "Deleted campaign [$tombstone] in tenant [$tenant]"
         event(for: 'crmCampaign', topic: 'deleted', data: eventPayload)
         return tombstone
+    }
+
+    def addCampaignResource(CrmCampaign campaign, InputStream is, String filename, Long length, String mimeType, Map params = [:]) {
+        if (!params.status) {
+            params.status = 'shared'
+        }
+        crmContentService.createResource(is, filename, length, mimeType, campaign, params)
+    }
+
+    def addCampaignResource(CrmCampaign campaign, MultipartFile file, Map params = [:]) {
+        if (!params.status) {
+            params.status = 'shared'
+        }
+        crmContentService.createResource(file.inputStream, file.originalFilename, file.size, file.contentType, campaign, params)
+    }
+
+    def addCampaignResource(CrmCampaign campaign, String text, String filename, Map params = [:]) {
+        if (!params.status) {
+            params.status = 'shared'
+        }
+        crmContentService.createResource(text, filename, campaign, params)
     }
 
     def getCampaignResource(CrmCampaign crmCampaign, String resourceName) {

@@ -1,0 +1,275 @@
+= GR8 CRM - Campaign Management Plugin
+Göran Ehrsson <goran@technipelago.se>
+:description: Official documentation for the GR8 CRM Campaign Management Plugin
+:keywords: groovy, grails, crm, gr8crm, documentation
+:toc:
+:numbered:
+:icons: font
+:imagesdir: ./images
+:source-highlighter: prettify
+:homepage: http://gr8crm.github.io
+:gr8crm: GR8 CRM
+:gr8source: https://github.com/technipelago/grails-crm-campaign
+:license: This plugin is licensed with http://www.apache.org/licenses/LICENSE-2.0.html[Apache License version 2.0]
+
+== Introduction
+
+{gr8crm} is a set of http://www.grails.org/[Grails Web Application Framework]
+plugins that makes it easy to develop web applications with CRM functionality.
+
+You can find more information about {gr8crm} on the main documentation site {homepage}.
+
+=== Customer Relationship Management
+
+Customer relationship management (CRM) is a system for managing a company’s interactions with current and future customers.
+It involves using technology to organize, automate and synchronize sales, marketing, customer service, and technical support.
+http://en.wikipedia.org/wiki/Customer_relationship_management[Wikipedia]
+
+The {gr8crm} "Ecosystem" currently contains over 40 Grails plugins. For a complete list of plugins see {homepage}.
+
+Each {gr8crm} plugin defines a http://martinfowler.com/bliki/BoundedContext.html[Bounded Context]
+that focus on one specific domain, for example *contact*, *project* or *document*.
+
+== Campaign Management Plugin
+
+This plugin provide storage and services for managing many types of campaigns  in {gr8crm} applications.
+
+Note that this plugin does not contain any user interface components. This plugin contains domain classes and services only.
+The plugin http://gr8crm.github.io/plugins/crm-campaign-ui/[crm-campaign-ui] provides a Twitter Bootstrap based user interface for managing campaigns.
+`crm-campaign-ui` depends on `crm-campaign` so you only need to include `crm-campaign-ui`
+in your BuildConfig.groovy if you want end-user campaign management features.
+
+== Domain Model
+
+image::campaign-domain.png[Campaign Domain Model]
+
+=== CrmCampaign
+
+
+== CrmCampaignService
+
+Like most other {gr8crm} plugins this plugin have a main service with methods for creating, searching and updating campaigns.
+
+=== Create campaign status
+
+`CrmCampaignStatus createCampaignStatus(Map params, boolean save = false)`
+
+Campaign status is mandatory on a campaign and different campaign statuses can be created with `createCampaignStatus()`.
+
+=== Create a new campaign
+
+`CrmCampaign createCampaign(Map params, boolean save = false)`
+
+To create a new campaign you call the `createCampaign(Map, boolean)` method with a map of property values and a boolean
+to indicate if the campaign should be persisted inside the method or if you want to persist it later yourself.
+
+[source,groovy]
+.CreateCampaign.groovy
+----
+def c = crmCampaignService.createCampaign(...);
+
+println "Campaign $c created with status ${c.status}"
+----
+
+=== Banner Campaign
+
+A banner campaign is used when you want to display a banner image on your web page with a link that leads to
+a page with more information. A banner campaign uses {homepage}/plugins/crm-content[crm-content] plugin to store banner images.
+
+[source,groovy]
+.CreateBannerCampaigns.groovy
+----
+def grailsApplication
+def bannerCampaign <1>
+
+final ApplicationContext ctx = grailsApplication.mainContext
+final CrmCampaignStatus status = crmCampaignService.createCampaignStatus(orderIndex: 2,
+        name: "Active campaign", param: "active", true)
+
+final CrmCampaign parentCampaign = crmCampaignService.createCampaign(number: "banner",
+        name: "Banners on home page", description: "Parent campaign for all banners on home page",
+        status: status, true) <2>
+
+def createCampaign = { name, desc, img, link -> <3>
+    def c = crmCampaignService.createCampaign(parent: parentCampaign, status: status,
+            name: name, description: desc, code: "ads", true)
+    if(c.hasErrors()) {
+        throw new RuntimeException("Cannot create campaign")
+    } else {
+        def image = ctx.getResource(img).file <4>
+        image.withInputStream { is ->
+            crmCampaignService.addCampaignResource(c, is, "banner.jpg", image.length(), "image/jpeg")
+        }
+        bannerCampaign.configure(c) {
+          url link <5>
+        }
+    }
+}
+// Create three campaigns, one for each of our new amazing products.
+createCampaign "Product X", "Our amazing new Product X...",
+        "images/banners/product-x.jpg", "http://mywebshop.com/view/product-x"
+createCampaign "Product Y", "Our amazing new Product Y...",
+        "images/banners/product-y.jpg", "http://mywebshop.com/view/product-y"
+createCampaign "Product Z", "Our amazing new Product Z...",
+        "images/banners/product-z.jpg", "http://mywebshop.com/view/product-z"
+----
+<1> Inject the BannerCampaign bean so we can use it to configure our campaigns.
+<2> Create a parent campaign that group all banner campaigns.
+<3> Create a closure to make it easy to create sub-campaigns.
+<4> Banner images are located in web-app/images/banners so we can get them via ApplicationContext.
+<5> Each sub-campaign is configured with the link to more information.
+
+.Rendering banners
+
+To display the three banners we created above we can call the `images` action in `CrmCampaignResourceController`
+to get a list of images. In the following example we use Javascript and jQuery to add all images to a banner area
+on our web page. When the visitor clicks on an image it will redirect the browser to the configured link.
+
+[source,javascript]
+----
+$.getJSON("/crmCampaignResource/images?t=1&code=ads", function(data) { <1>
+    var container = $("#banners");
+    for(var i = 0; i < data.length; i++) {
+        var banner = data[i];
+        var $img = $("<img/>").attr("src", banner.uri).attr("alt", banner.title);
+        var $link = $("<a/>").attr("href", banner.url).attr("target", '_blank')
+                .attr("title", banner.title);
+        $link.append($img);
+        $container.append($link);
+    }
+});
+----
+<1> Because GR8 CRM is always multi-tenant we must specify in which tenant our campaigns are stored (t=1).
+
+=== Information Campaign
+
+If you develop a public facing site with GR8 CRM you can display different content depending on where your visitors
+come from. For example if they come via a link on Twitter you can display one type of content, if they come via
+Facebook you can display another type of content.
+
+[source,groovy]
+.CreateInformationCampaign
+----
+def status = crmCampaignService.createCampaignStatus(name: 'Active campaign', param: 'active', true)
+def twitter = crmCampaignService.createCampaign(number: "twitter-app-2016", code: "twitter", status: status,
+    name: "Tweets", description: "Visitors that came to us via a tweet", true)
+def text = """
+<h3>Download our Twitter App</h3>
+<div class="pull-right">
+   <@link controller="download" action="index" query="id=twitter-app" class="btn btn-success">Download</@link>
+</div>
+<p>With our new Twitter app you can do amazing things...</p>
+"""
+crmCampaignService.addCampaignResource(twitter, text, "twitter-app.ftl", [contentType: "text/html")
+----
+
+With one or more campaigns (created above) we can use the `<crm:campaign>` GSP tag to render the text.
+
+[source,groovy]
+.Config.groovy
+----
+crm {
+    campaign {
+        landingParam = ['utm_source', 'campaign', '_c] <1>
+        landingPages = [home: 'index'] <2>
+        sessionParam = 'campaign' <3>
+    }
+}
+----
+<1> A list of known campaign source query parameters. This list is used to lookup the right campaign.
+<2> The landing pages that will trigger campaign lookup, in this example it's HomeController.index.
+<3> If a campaign is found a reference to it is stored in a HTTP session attribute called 'campaign'.
+
+[source,html]
+.home/index.gsp
+----
+<div class="well">
+    <crm:campaign campaign="${request.session.campaign}" template="default-campaign.ftl"/> <1>
+</div>
+----
+<1> If the session attribute 'campaign' is non-null the text for that campaign is rendered.
+Otherwise a default text template is rendered using the 'crm-content' plugin.
+
+=== Product Discount Campaign
+
+If you develop a web shop with the `crm-product` plugin you can configure product campaigns to offer discounts or
+value-add products for your customers. The `ProductDiscountCampaign` handler is very flexible with lots of
+configuration options.
+
+The following example applies 10 % discount on "Product X" products if the customer lands on our home page or web shop
+and a campaign source query parameter has the value "twitter".
+
+[source,groovy]
+.Config.groovy
+----
+crm {
+    campaign {
+        landingParam = ['utm_source', 'campaign', '_c]
+        landingPages = ['home|blog|webshop': 'index']
+        sessionParam = 'campaign'
+        productDiscountCampaign.round = true
+    }
+}
+----
+
+[source,groovy]
+.CreateProductDiscountCampaign
+----
+def status = crmCampaignService.createCampaignStatus(name: 'Active campaign', param: 'active', true)
+def twitter = crmCampaignService.createCampaign(number: "twitter2016", code: "twitter", status: status,
+    name: "Promotion for twitter users", description: "Follow us on Twitter to receive a 10 % discount on Product X.")
+productDiscountCampaign.configure(twitter) {
+    products = ['productXbasic', 'productXpro', 'productXultimate'] <1>
+    discount = 0.10 <2>
+    condition = 'any' <3>
+}
+campaign.save(failOnError: true)
+----
+<1> Only apply discount on a limited list of products.
+<2> 10 % discount
+<3> The discount is applied without any amount threshold.
+If condition is a number the discount will only be applied if the total shopping cart value is higher than 'condition'.
+
+See https://github.com/technipelago/grails-crm-campaign/blob/master/test/integration/grails/plugins/crm/campaign/ProductDiscountCampaignSpec.groovy[ProductDiscountCampaignSpec.groovy] for more examples.
+
+=== Email Campaign
+
+[source,groovy]
+.CreateEmailCampaign.groovy
+----
+def emailCampaign <1>
+
+def active = crmCampaignService.createCampaignStatus(name: "Active", true)
+def campaign = crmCampaignService.createCampaign(name: "Test campaign", status: active, true)
+emailCampaign.configure(campaign) {
+    subject = "Test"
+    sender = "info@mycompany.com"
+    parts = ['html', 'text']
+    html = """<h1>Hello World!</h1>"""
+    text = """Hello World!"""
+} <2>
+crmEmailCampaignService.createRecipients(campaign, ['me@mycompany.com', 'joe.average@customer.com']) <3>
+crmEmailCampaignService.send() <4>
+----
+<1> Inject the EmailCampaign bean so we can use it to configure our campaign.
+<2> Configure the email layout and other email parameters.
+<3> Add two recipients.
+<4> Start the campaign. This will send the email to the recipients.
+
+== Changes
+
+2.4.0:: First public release
+
+== License
+
+{license}
+
+== Source Code
+
+The source code for this plugin is available at {gr8source}
+
+== Contributing
+
+Please report {gr8source}/issues[issues or suggestions].
+
+Want to improve the plugin: Fork the {gr8source}[repository] and send a pull request.
