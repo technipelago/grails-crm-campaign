@@ -46,7 +46,7 @@ class CrmCampaignService {
         def locale = tenant.locale
         TenantUtils.withTenant(tenant.id) {
             crmTagService.createTag(name: CrmCampaign.name, multiple: true)
-            sequenceGeneratorService.initSequence(CrmCampaign, null, tenant, 1, "%s")
+            sequenceGeneratorService.initSequence(CrmCampaign, null, tenant.id, 1, "%s")
             createCampaignStatus(orderIndex: 1, param: 'pending',
                     name: getLocalizedName('crmCampaignStatus.name.pending', 'Pending', locale),).save(failOnError: true)
             createCampaignStatus(orderIndex: 2, param: 'active',
