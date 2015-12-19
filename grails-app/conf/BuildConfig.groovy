@@ -44,7 +44,7 @@ grails.project.dependency.resolution = {
 
         compile ":mail:1.0.7"
         compile ":selection:0.9.8"
-        compile ":sequence-generator:1.1"
+        compile ":sequence-generator:1.2"
 
         compile ":crm-tags:2.4.0"
         compile ":crm-content:2.4.0"
