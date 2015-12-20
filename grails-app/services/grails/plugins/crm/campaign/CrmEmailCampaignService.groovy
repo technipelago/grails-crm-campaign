@@ -69,11 +69,14 @@ class CrmEmailCampaignService {
 
         // Be nice to the mail server and throttle emails.
         // 150 ms between each email means 2 minutes processing every 10 minutes.
+        // Set to -1 for no sleep between emails.
         def sleep = grailsApplication.config.crm.campaign.email.sleep ?: 150L
         def proxy = grailsApplication.mainContext.getBean('crmEmailCampaignService')
         for (CrmCampaignRecipient r in result) {
             proxy.sendToRecipient(r)
-            Thread.sleep(sleep)
+            if(sleep > 0) {
+                Thread.sleep(sleep)
+            }
         }
     }
 
