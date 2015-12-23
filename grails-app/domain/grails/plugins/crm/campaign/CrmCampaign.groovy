@@ -37,7 +37,7 @@ import java.text.SimpleDateFormat
 @SequenceEntity(property = "number", maxSize = 16, blank = false, unique = "tenantId")
 class CrmCampaign {
 
-    public static final List BIND_WHITELIST = ['number', 'code', 'name', 'description', 'status', 'parent']
+    public static final List BIND_WHITELIST = ['number', 'code', 'name', 'description', 'parent']
 
     String code
     String name
@@ -51,7 +51,6 @@ class CrmCampaign {
     Date startTime
     Date endTime
 
-    CrmCampaignStatus status // TODO Remove status, it's obsolete. startTime/endTime give us the status we need.
     CrmCampaign parent
 
     static hasMany = [children: CrmCampaign, target: CrmCampaignTarget, trackables: CrmCampaignTrackable]

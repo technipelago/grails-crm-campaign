@@ -1,5 +1,4 @@
 import grails.plugins.crm.campaign.CrmCampaign
-import grails.plugins.crm.campaign.CrmCampaignStatus
 
 config = {
     // Hibernate domain class second-level caches.
@@ -11,16 +10,6 @@ config = {
         maxElementsOnDisk 0
         timeToLiveSeconds 600
         timeToIdleSeconds 300
-    }
-
-    domain {
-        name CrmCampaignStatus
-        eternal false
-        overflowToDisk false
-        maxElementsInMemory 10
-        maxElementsOnDisk 0
-        timeToLiveSeconds 1800
-        timeToIdleSeconds 900
     }
 
 }

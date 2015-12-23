@@ -14,8 +14,7 @@ class CampaignTargetSpec extends IntegrationSpec {
 
     def "Create and select target group on a campaign"() {
         given: "create a fresh campaign"
-        def status = crmCampaignService.createCampaignStatus(name: "TEST", true)
-        def campaign = crmCampaignService.createCampaign(number: "test1", name: "Invitation to our test party", status: status, true)
+        def campaign = crmCampaignService.createCampaign(number: "test1", name: "Invitation to our test party", true)
         def backup = gormSelection.getCriteria(TestEntity)
         gormSelection.setCriteria(TestEntity) { query, params ->
             if (query.name) {

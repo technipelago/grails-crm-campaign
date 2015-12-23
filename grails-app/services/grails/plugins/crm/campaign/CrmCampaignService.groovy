@@ -20,10 +20,10 @@ import grails.events.Listener
 import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
+import grails.plugins.selection.Selectable
 import org.apache.commons.lang.StringUtils
 import org.grails.databinding.SimpleMapDataBindingSource
 import org.hibernate.FetchMode
-import grails.plugins.selection.Selectable
 import org.springframework.web.multipart.MultipartFile
 
 /**
@@ -37,27 +37,15 @@ class CrmCampaignService {
     def crmContentService
     def crmTagService
     def sequenceGeneratorService
-    def messageSource
 
     @Listener(namespace = "crmCampaign", topic = "enableFeature")
     def enableFeature(event) {
         // event = [feature: feature, tenant: tenant, role:role, expires:expires]
         def tenant = crmSecurityService.getTenantInfo(event.tenant)
-        def locale = tenant.locale
         TenantUtils.withTenant(tenant.id) {
             crmTagService.createTag(name: CrmCampaign.name, multiple: true)
             sequenceGeneratorService.initSequence(CrmCampaign, null, tenant.id, 1, "%s")
-            createCampaignStatus(orderIndex: 1, param: 'pending',
-                    name: getLocalizedName('crmCampaignStatus.name.pending', 'Pending', locale),).save(failOnError: true)
-            createCampaignStatus(orderIndex: 2, param: 'active',
-                    name: getLocalizedName('crmCampaignStatus.name.active', 'Active', locale),).save(failOnError: true)
-            createCampaignStatus(orderIndex: 9, param: 'closed',
-                    name: getLocalizedName('crmCampaignStatus.name.closed', 'Closed', locale),).save(failOnError: true)
         }
-    }
-
-    private String getLocalizedName(String code, String fallback, Locale locale) {
-        messageSource.getMessage(code, null, fallback, locale)
     }
 
     @Listener(namespace = "crmTenant", topic = "requestDelete")
@@ -65,7 +53,6 @@ class CrmCampaignService {
         def tenant = event.id
         def count = 0
         count += CrmCampaign.countByTenantId(tenant)
-        count += CrmCampaignStatus.countByTenantId(tenant)
         count ? [namespace: 'crmCampaign', topic: 'deleteTenant'] : null
     }
 
@@ -79,8 +66,6 @@ class CrmCampaignService {
         for (c in CrmCampaign.findAllByTenantId(tenant)) {
             deleteCampaign(c)
         }
-        // Remove types and statuses.
-        CrmCampaignStatus.findAllByTenantId(tenant)*.delete()
         log.warn("Deleted $count campaigns in tenant $tenant")
     }
 
@@ -162,15 +147,6 @@ class CrmCampaignService {
                 ilike('name', SearchUtils.wildcard(query.name))
             }
 
-            if (query.status) {
-                status {
-                    or {
-                        ilike('name', SearchUtils.wildcard(query.status))
-                        eq('param', query.status)
-                    }
-                }
-            }
-
             if (query.fromDate && query.toDate) {
                 def timezone = query.timezone ?: TimeZone.getDefault()
                 def d1 = query.fromDate instanceof Date ? query.fromDate : DateUtils.parseDate(query.fromDate, timezone)
@@ -204,9 +180,6 @@ class CrmCampaignService {
             m = new CrmCampaign()
             grailsWebDataBinder.bind(m, params as SimpleMapDataBindingSource, null, CrmCampaign.BIND_WHITELIST, null, null)
             m.tenantId = tenant
-            if (!m.status) {
-                m.status = CrmCampaignStatus.findAllByTenantId(tenant, [sort: 'orderIndex', order: 'asc']).find { it }
-            }
             if (save) {
                 m.save()
             } else {
@@ -219,7 +192,7 @@ class CrmCampaignService {
 
     CrmCampaign copyCampaign(CrmCampaign templateCampaign, boolean save = false) {
         def tenant = TenantUtils.tenant
-        def props = ['handlerName', 'handlerConfig', 'startTime', 'endTime', 'status', 'parent'] +
+        def props = ['handlerName', 'handlerConfig', 'startTime', 'endTime', 'parent'] +
                 CrmCampaign.BIND_WHITELIST
         // Create a new campaign instance.
         def crmCampaign = new CrmCampaign(tenantId: tenant)
@@ -261,28 +234,6 @@ class CrmCampaignService {
         return crmCampaign
     }
 
-    CrmCampaignStatus createCampaignStatus(Map params, boolean save = false) {
-        if (!params.param) {
-            params.param = StringUtils.abbreviate(params.name?.toLowerCase(), 20)
-        }
-        def tenant = TenantUtils.tenant
-        def m = CrmCampaignStatus.findByParamAndTenantId(params.param, tenant)
-        if (!m) {
-            m = new CrmCampaignStatus(params)
-            m.tenantId = tenant
-            if (params.enabled == null) {
-                m.enabled = true
-            }
-            if (save) {
-                m.save()
-            } else {
-                m.validate()
-                m.clearErrors()
-            }
-        }
-        return m
-    }
-
     CrmCampaign getCampaign(Long id) {
         CrmCampaign.findByIdAndTenantId(id, TenantUtils.tenant, [cache: true])
     }
@@ -302,7 +253,6 @@ class CrmCampaignService {
             if (handler) {
                 eq('handlerName', handler)
             }
-            fetchMode('status', FetchMode.JOIN)
             order 'dateCreated', 'desc'
             maxResults 1
             cache true
@@ -318,7 +268,6 @@ class CrmCampaignService {
             if (handler) {
                 eq('handlerName', handler)
             }
-            fetchMode('status', FetchMode.JOIN)
             order 'dateCreated', 'desc'
             cache true
         }.find { (campaignCode =~ it.code).find() && it.active }

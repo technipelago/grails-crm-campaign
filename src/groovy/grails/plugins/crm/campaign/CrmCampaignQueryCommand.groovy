@@ -8,7 +8,6 @@ class CrmCampaignQueryCommand implements Serializable {
     String parent
     String number
     String name
-    String status
     String username
     String fromDate
     String toDate
