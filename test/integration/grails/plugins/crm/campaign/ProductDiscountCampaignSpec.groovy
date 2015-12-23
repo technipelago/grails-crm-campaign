@@ -78,8 +78,7 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
 
     def "test execution without discount product"() {
         given: "mock a shopping cart and create a fresh campaign"
-        def status = crmCampaignService.createCampaignStatus(name: "TEST", true)
-        def campaign = crmCampaignService.createCampaign(number: "test1", name: "Get 10% off our network products", status: status)
+        def campaign = crmCampaignService.createCampaign(number: "test1", name: "Get 10% off our network products")
 
         when: "configure the campaign as 10% off on switches, routers and firewalls"
         productDiscountCampaign.configure(campaign) {
@@ -112,8 +111,7 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
 
     def "test execution with a discount product"() {
         given: "mock a shopping cart and create a fresh campaign"
-        def status = crmCampaignService.createCampaignStatus(name: "TEST", true)
-        def campaign = crmCampaignService.createCampaign(number: "test2", name: "Get 10% off our network products", status: status)
+        def campaign = crmCampaignService.createCampaign(number: "test2", name: "Get 10% off our network products")
 
         when: "configure the campaign as 10% off on switches, routers and firewalls. Add a specific discount item to the cart."
         productDiscountCampaign.configure(campaign) {
@@ -148,8 +146,7 @@ class ProductDiscountCampaignSpec extends IntegrationSpec {
 
     def "test execution with a campaign product"() {
         given: "mock a shopping cart and create a fresh campaign"
-        def status = crmCampaignService.createCampaignStatus(name: "TEST", true)
-        def campaign = crmCampaignService.createCampaign(number: "test3", name: "Get a free USB stick when you buy our network products", status: status)
+        def campaign = crmCampaignService.createCampaign(number: "test3", name: "Get a free USB stick when you buy our network products")
 
         when: "configure the campaign as 10% off on switches, routers and firewalls"
         productDiscountCampaign.configure(campaign) {

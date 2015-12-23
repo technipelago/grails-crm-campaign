@@ -34,7 +34,6 @@ class EmailCampaignSpec extends IntegrationSpec {
 
     def "create recipients"() {
         given:
-        def active = crmCampaignService.createCampaignStatus(name: 'Active', true)
         def latch = new CountDownLatch(1)
 
         grailsEventsRegistry.on("crmCampaign", "sendMail") { data ->
@@ -56,13 +55,12 @@ class EmailCampaignSpec extends IntegrationSpec {
         }
 
         when:
-        def campaign = crmCampaignService.createCampaign(name: "Test", status: active, true)
+        def campaign = crmCampaignService.createCampaign(name: "Test", true)
         emailCampaign.configure(campaign) {
             subject = "Integration test"
             sender = "me@mycompany.com"
-            parts = ['html', 'text']
-            html = """<h1>Hello Räksmörgås!</h1>"""
-            text = """Hello Räksmörgås!"""
+            parts = ['body']
+            body = """<h1>Hello Räksmörgås!</h1>"""
         }
 
         then:
@@ -96,8 +94,7 @@ class EmailCampaignSpec extends IntegrationSpec {
     def "bounce tracking"() {
         given:
         def person = new TestEntity(name: "Joe Spammer", postalCode: "12345", city: "Spam City", age: 42).save(failOnError: true)
-        def active = crmCampaignService.createCampaignStatus(name: 'Active', true)
-        def campaign = crmCampaignService.createCampaign(name: "Test", status: active, true)
+        def campaign = crmCampaignService.createCampaign(name: "Test", true)
         def fakeRecipient = new CrmCampaignRecipient(campaign: campaign, ref: 'testEntity@' + person.id, email: 'problem@foo.com', dateSent: new Date()).save(failOnError: true)
         def mailServer = new GreenMail(ServerSetupTest.IMAP);
         mailServer.start();
