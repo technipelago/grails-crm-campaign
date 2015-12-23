@@ -57,7 +57,7 @@ Custom plugins can provide other campaign types with Grails artifacts.
                 guest "crmCampaign:index,list,show"
                 partner "crmCampaign:index,list,show"
                 user "crmCampaign:*"
-                admin "crmCampaign,crmCampaignStatus:*", "productDiscountCampaign,informationCampaign:edit"
+                admin "crmCampaign:*", "productDiscountCampaign,informationCampaign:edit"
             }
         }
     }

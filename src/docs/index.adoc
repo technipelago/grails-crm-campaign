@@ -50,12 +50,6 @@ image::campaign-domain.png[Campaign Domain Model]
 
 Like most other {gr8crm} plugins this plugin have a main service with methods for creating, searching and updating campaigns.
 
-=== Create campaign status
-
-`CrmCampaignStatus createCampaignStatus(Map params, boolean save = false)`
-
-Campaign status is mandatory on a campaign and different campaign statuses can be created with `createCampaignStatus()`.
-
 === Create a new campaign
 
 `CrmCampaign createCampaign(Map params, boolean save = false)`
@@ -68,7 +62,7 @@ to indicate if the campaign should be persisted inside the method or if you want
 ----
 def c = crmCampaignService.createCampaign(...);
 
-println "Campaign $c created with status ${c.status}"
+println "Campaign $c created"
 ----
 
 === Banner Campaign
@@ -83,15 +77,13 @@ def grailsApplication
 def bannerCampaign <1>
 
 final ApplicationContext ctx = grailsApplication.mainContext
-final CrmCampaignStatus status = crmCampaignService.createCampaignStatus(orderIndex: 2,
-        name: "Active campaign", param: "active", true)
 
 final CrmCampaign parentCampaign = crmCampaignService.createCampaign(number: "banner",
         name: "Banners on home page", description: "Parent campaign for all banners on home page",
-        status: status, true) <2>
+        true) <2>
 
 def createCampaign = { name, desc, img, link -> <3>
-    def c = crmCampaignService.createCampaign(parent: parentCampaign, status: status,
+    def c = crmCampaignService.createCampaign(parent: parentCampaign,
             name: name, description: desc, code: "ads", true)
     if(c.hasErrors()) {
         throw new RuntimeException("Cannot create campaign")
@@ -150,8 +142,7 @@ Facebook you can display another type of content.
 [source,groovy]
 .CreateInformationCampaign
 ----
-def status = crmCampaignService.createCampaignStatus(name: 'Active campaign', param: 'active', true)
-def twitter = crmCampaignService.createCampaign(number: "twitter-app-2016", code: "twitter", status: status,
+def twitter = crmCampaignService.createCampaign(number: "twitter-app-2016", code: "twitter",
     name: "Tweets", description: "Visitors that came to us via a tweet", true)
 def text = """
 <h3>Download our Twitter App</h3>
@@ -215,8 +206,7 @@ crm {
 [source,groovy]
 .CreateProductDiscountCampaign
 ----
-def status = crmCampaignService.createCampaignStatus(name: 'Active campaign', param: 'active', true)
-def twitter = crmCampaignService.createCampaign(number: "twitter2016", code: "twitter", status: status,
+def twitter = crmCampaignService.createCampaign(number: "twitter2016", code: "twitter",
     name: "Promotion for twitter users", description: "Follow us on Twitter to receive a 10 % discount on Product X.")
 productDiscountCampaign.configure(twitter) {
     products = ['productXbasic', 'productXpro', 'productXultimate'] <1>
@@ -239,14 +229,12 @@ See https://github.com/technipelago/grails-crm-campaign/blob/master/test/integra
 ----
 def emailCampaign <1>
 
-def active = crmCampaignService.createCampaignStatus(name: "Active", true)
-def campaign = crmCampaignService.createCampaign(name: "Test campaign", status: active, true)
+def campaign = crmCampaignService.createCampaign(name: "Test campaign", true)
 emailCampaign.configure(campaign) {
     subject = "Test"
     sender = "info@mycompany.com"
-    parts = ['html', 'text']
-    html = """<h1>Hello World!</h1>"""
-    text = """Hello World!"""
+    parts = ['body']
+    body = """<h1>Hello World!</h1>"""
 } <2>
 crmEmailCampaignService.createRecipients(campaign, ['me@mycompany.com', 'joe.average@customer.com']) <3>
 crmEmailCampaignService.send() <4>

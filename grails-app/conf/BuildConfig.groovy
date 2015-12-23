@@ -5,7 +5,7 @@ grails.project.target.level = 1.6
 
 grails.project.fork = [
     //  compile: [maxMemory: 256, minMemory: 64, debug: false, maxPerm: 256, daemon:true],
-    test: false,
+    test: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
     run: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
     war: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256, forkReserve:false],
     console: [maxMemory: 768, minMemory: 64, debug: false, maxPerm: 256]
@@ -40,9 +40,9 @@ grails.project.dependency.resolution = {
 
         test(":codenarc:0.22") { export = false }
         test(":code-coverage:2.0.3-3") { export = false }
+        test(":mail:1.0.7") { export = false }
         test(":greenmail:1.3.4") { export = false }
 
-        compile ":mail:1.0.7"
         compile ":selection:0.9.8"
         compile ":sequence-generator:1.2"
 
