@@ -1,14 +1,14 @@
 class CrmCampaignUrlMappings {
 
 	static mappings = {
-        "/t/${id}.png" {
+        name 'crm-track-beacon': "/t/${id}.png" {
             controller = "crmCampaignTracker"
             action = "track"
             constraints {
                 id(matches: /[0-9a-f\-]+/)
             }
         }
-        "/t/${id}/${recipient}.${ext}" {
+        name 'crm-track-click': "/t/${id}/${recipient}.${ext}" {
             controller = "crmCampaignTracker"
             action = "link"
             constraints {
@@ -17,7 +17,7 @@ class CrmCampaignUrlMappings {
                 ext(matches: /[htmlpdfdocxst]+/)
             }
         }
-        "/newsletter/${id}/${recipient}.htm" {
+        name 'crm-newsletter': "/newsletter/${id}/${recipient}.html" {
             controller = "crmCampaignTracker"
             action = "newsletter"
             constraints {
@@ -25,14 +25,14 @@ class CrmCampaignUrlMappings {
                 recipient(matches: /[0-9a-f\-]+/)
             }
         }
-        "/newsletter/${id}.htm" {
+        name 'crm-newsletter-anonymous': "/newsletter/${id}.html" {
             controller = "crmCampaignTracker"
             action = "newsletter"
             constraints {
                 id(matches: /[0-9]+/)
             }
         }
-        "/optout/${id}.htm" {
+        name 'crm-optout': "/optout/${id}.html" {
             controller = "crmCampaignTracker"
             action = "optout"
             constraints {

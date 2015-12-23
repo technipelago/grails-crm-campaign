@@ -19,13 +19,13 @@
 
 <body>
 <div id="optout-dialog">
-    <h2>${cfg.company?.encodeAsHTML()}</h2>
+    <h2>${cfg.company}</h2>
     <g:if test="${cfg.logo}">
-        <img src="${cfg.logo}" alt="${cfg.company?.encodeAsHTML()}"/>
+        <img src="${cfg.logo}" alt="${cfg.company}"/>
     </g:if>
     <h1>Avregistrering</h1>
     <g:if test="${recipient.dateOptOut}">
-        <h3>${recipient.email?.encodeAsHTML()}</h3>
+        <h3>${recipient.email}</h3>
         <h4>är avregistrerad från framtida utskick.</h4>
     </g:if>
     <g:else>
@@ -37,20 +37,20 @@
                 <div style="text-align: left;">
                     <g:each in="${opts}" var="o" status="i">
                         <g:checkBox name="opts" value="${o.key}" checked=""
-                                    id="opt${i + 1}"/> ${o.value.encodeAsHTML()}<br/>
+                                    id="opt${i + 1}"/> ${o.value}<br/>
                     </g:each>
                 </div>
 
-                <h3 style="margin-top: 20px;">skickat till ${recipient.email?.encodeAsHTML()}</h3>
+                <h3 style="margin-top: 20px;">skickat till ${recipient.email}</h3>
             </g:if>
             <g:else>
-                <h3>${recipient.email?.encodeAsHTML()}</h3>
+                <h3>${recipient.email}</h3>
             </g:else>
             <button type="submit">Verkställ</button>
         </g:form>
     </g:else>
     <g:if test="${cfg.website}">
-        <a href="${cfg.website}">${(cfg.company ?: 'Home').encodeAsHTML()}</a>
+        <a href="${cfg.website}">${(cfg.company ?: 'Home')}</a>
     </g:if>
 </div>
 </body>

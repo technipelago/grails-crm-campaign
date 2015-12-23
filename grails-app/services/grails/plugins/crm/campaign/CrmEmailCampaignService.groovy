@@ -6,8 +6,6 @@ import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
 import org.springframework.transaction.annotation.Transactional
 
-import java.text.SimpleDateFormat
-
 /**
  * Service for outbound email campaigns.
  */
@@ -19,6 +17,8 @@ class CrmEmailCampaignService {
     def jobManagerService
     def crmContentService
     def crmContentRenderingService
+    def grailsLinkGenerator
+    def messageSource
 
     @Transactional
     int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
@@ -74,7 +74,7 @@ class CrmEmailCampaignService {
         def proxy = grailsApplication.mainContext.getBean('crmEmailCampaignService')
         for (CrmCampaignRecipient r in result) {
             proxy.sendToRecipient(r)
-            if(sleep > 0) {
+            if (sleep > 0) {
                 Thread.sleep(sleep)
             }
         }
@@ -145,8 +145,22 @@ class CrmEmailCampaignService {
         }
     }
 
+    private String getBaseUrl() {
+        def webFrontUrl = grailsApplication.config.crm.web.url
+        String url
+        if (webFrontUrl) {
+            url = webFrontUrl
+        } else {
+            url = grailsLinkGenerator.link(uri: '/', absolute: true).toString()
+        }
+        if (url.endsWith("/")) {
+            url = url[0..-2]
+        }
+        url
+    }
+
     String replaceHyperlinks(final CrmCampaignRecipient recipient, final String input) {
-        final String serverURL = grailsApplication.config.crm.web.url ?: grailsApplication.config.grails.serverURL
+        final String serverURL = getBaseUrl()
         final CrmCampaign campaign = recipient.campaign
         final Object html = new XmlSlurper(new Parser()).parseText(input)
         final Collection links = html.depthFirst().findAll { it.name() == 'a' }
@@ -155,7 +169,7 @@ class CrmEmailCampaignService {
             if (!href.startsWith('mailto')) {
                 def link = CrmCampaignTrackable.findByCampaignAndHref(campaign, href)
                 if (link) {
-                    a.@href = "${serverURL}/t/${link.guid}/${recipient.guid}.htm".toString()
+                    a.@href = "${serverURL}/t/${link.guid}/${recipient.guid}.html".toString()
                 }
             }
         }
@@ -223,8 +237,7 @@ class CrmEmailCampaignService {
             }
         }
         if ((!href) && recipient) {
-            final String serverURL = grailsApplication.config.crm.web.url ?: grailsApplication.config.grails.serverURL
-            href = "$serverURL/newsletter/${recipient.campaign.publicId}/${recipient.guid}.htm".toString()
+            href = "${getBaseUrl()}/newsletter/${recipient.campaign.publicId}/${recipient.guid}.html".toString()
         }
         return href
     }
@@ -250,14 +263,16 @@ class CrmEmailCampaignService {
     }
 
     CrmCampaign getCampaignByPublicId(String publicId) {
-        def idLength = Integer.valueOf(publicId[0])
-        def primaryKey = Long.valueOf(publicId[1..idLength])
-        def date = new SimpleDateFormat('yyMMddHHmmss').parse(publicId[(idLength + 1)..-1])
-        CrmCampaign.createCriteria().get() {
-            eq('id', primaryKey)
-            eq('dateCreated', date)
-            cache true
+        final Integer idLength = Integer.valueOf(publicId[0])
+        final Long primaryKey = Long.valueOf(publicId[1..idLength])
+        final CrmCampaign crmCampaign = CrmCampaign.get(primaryKey)
+        if (crmCampaign) {
+            final String timestamp = publicId[(idLength + 1)..-1]
+            if (timestamp == crmCampaign.dateCreated.format('yyMMddHHmmss')) {
+                return crmCampaign
+            }
         }
+        null
     }
 
     String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null) {

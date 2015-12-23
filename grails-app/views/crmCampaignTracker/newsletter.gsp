@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <title>${cfg.subject?.encodeAsHTML()}</title>
+    <title>${cfg.subject}</title>
   </head>
   <body>
-    ${body}
+    ${raw(body)}
   </body>
 </html>

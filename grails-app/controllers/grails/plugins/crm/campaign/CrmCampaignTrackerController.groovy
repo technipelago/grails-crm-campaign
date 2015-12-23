@@ -11,6 +11,7 @@ import org.springframework.dao.ConcurrencyFailureException
 class CrmCampaignTrackerController {
 
     def crmEmailCampaignService
+    def grailsLinkGenerator
 
     // TODO Use @Cacheable to cache the image bytes.
     private void renderImage() {
@@ -160,8 +161,13 @@ class CrmCampaignTrackerController {
     }
 
     private String createOptOutLink(CrmCampaignRecipient recipient) {
-        final String serverURL = grailsApplication.config.crm.web.url ?: grailsApplication.config.grails.serverURL
-        final String ooLink = "$serverURL/optout/${recipient.guid}.htm"
+        def webFrontUrl = grailsApplication.config.crm.web.url
+        String ooLink
+        if(webFrontUrl) {
+            ooLink = "$webFrontUrl/optout/${recipient.guid}.html".toString()
+        } else {
+            ooLink = grailsLinkGenerator.link(mapping: 'crm-optout', params: [id: recipient.guid], absolute: true)
+        }
         message(code: 'emailCampaign.optout.link',
                 default: '<div style="font-size:smaller;"><a href="{1}">Cancel subscription</a>.</div>',
                 args: [recipient.toString(), ooLink])
