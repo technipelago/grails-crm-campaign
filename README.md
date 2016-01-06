@@ -16,7 +16,7 @@ With CRM we mean features like:
 This plugin provide storage and services for managing many types of campaigns in GR8 CRM applications.
 
 Note that this plugin does not contain any user interface components. This plugin contains domain classes and services only.
-The plugin [crm-campaign-ui]http://gr8crm.github.io/plugins/crm-campaign-ui/] provides a Twitter Bootstrap based user interface for managing campaigns.
+The plugin [crm-campaign-ui](http://gr8crm.github.io/plugins/crm-campaign-ui/) provides a Twitter Bootstrap based user interface for managing campaigns.
 **crm-campaign-ui** depends on **crm-campaign** so you only need to include **crm-campaign-ui**
 in your BuildConfig.groovy if you want end-user campaign management features.
 
