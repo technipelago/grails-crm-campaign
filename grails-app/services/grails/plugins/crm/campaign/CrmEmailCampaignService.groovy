@@ -4,6 +4,8 @@ import grails.plugins.crm.core.TenantUtils
 import groovy.xml.StreamingMarkupBuilder
 import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
+import org.springframework.core.io.ClassPathResource
+import org.springframework.core.io.Resource
 import org.springframework.transaction.annotation.Transactional
 
 /**
@@ -13,12 +15,26 @@ class CrmEmailCampaignService {
 
     static transactional = false
 
+    private static byte[] beaconBytes
+
     def grailsApplication
     def jobManagerService
     def crmContentService
     def crmContentRenderingService
     def grailsLinkGenerator
-    def messageSource
+
+    public byte[] getBeaconImage() {
+        if (beaconBytes == null) {
+            synchronized (this) {
+                if (beaconBytes == null) {
+                    Resource resource = new ClassPathResource("tracker.png", grailsApplication.classLoader)
+                    File file = resource.getFile()
+                    beaconBytes = file.bytes
+                }
+            }
+        }
+        beaconBytes
+    }
 
     @Transactional
     int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
@@ -164,6 +180,9 @@ class CrmEmailCampaignService {
         final CrmCampaign campaign = recipient.campaign
         final Object html = new XmlSlurper(new Parser()).parseText(input)
         final Collection links = html.depthFirst().findAll { it.name() == 'a' }
+        String addBeacon = grailsApplication.config.crm.campaign.email.track
+        String beaconSrc = addBeacon ? grailsLinkGenerator.link(mapping: 'crm-track-beacon', params: [id: recipient.guid]) : null
+
         for (a in links) {
             String href = a.@href?.toString()
             if (!href.startsWith('mailto')) {
@@ -173,6 +192,14 @@ class CrmEmailCampaignService {
                 }
             }
         }
+
+        if (beaconSrc) {
+            def body = html.body ?: html
+            if (body) {
+                body.appendNode({ img(src: beaconSrc, width: 1, height: 1) })
+            }
+        }
+
         new StreamingMarkupBuilder().bind {
             mkp.declareNamespace("": "http://www.w3.org/1999/xhtml")
             mkp.yield html

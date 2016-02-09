@@ -1,8 +1,6 @@
 package grails.plugins.crm.campaign
 
 import org.hibernate.HibernateException
-import org.springframework.core.io.ClassPathResource
-import org.springframework.core.io.Resource
 import org.springframework.dao.ConcurrencyFailureException
 
 /**
@@ -13,15 +11,11 @@ class CrmCampaignTrackerController {
     def crmEmailCampaignService
     def grailsLinkGenerator
 
-    // TODO Use @Cacheable to cache the image bytes.
     private void renderImage() {
-        Resource resource = new ClassPathResource("tracker.png", grailsApplication.classLoader)
-        File file = resource.getFile()
+        byte[] image = crmEmailCampaignService.getBeaconImage()
+        response.setContentLength(image.length)
         response.setContentType("image/png")
-        response.setContentLength(file.length().intValue())
-        file.withInputStream { is ->
-            response.getOutputStream() << is
-        }
+        response.getOutputStream().write(image)
     }
 
     def track() {
@@ -163,7 +157,7 @@ class CrmCampaignTrackerController {
     private String createOptOutLink(CrmCampaignRecipient recipient) {
         def webFrontUrl = grailsApplication.config.crm.web.url
         String ooLink
-        if(webFrontUrl) {
+        if (webFrontUrl) {
             ooLink = "$webFrontUrl/optout/${recipient.guid}.html".toString()
         } else {
             ooLink = grailsLinkGenerator.link(mapping: 'crm-optout', params: [id: recipient.guid], absolute: true)
