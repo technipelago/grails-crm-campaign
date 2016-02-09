@@ -254,7 +254,7 @@ Optionally it can tag the `CrmContact` instance with a tag that tells you that t
 Future email campaign can ignore contacts tagged as invalid. Or you can query and delete them from your address database.
 
 [source, groovy]
-Config.groovy
+.Config.groovy
 ----
 crm {
     campaign {
