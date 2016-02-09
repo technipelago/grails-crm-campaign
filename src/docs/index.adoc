@@ -244,8 +244,45 @@ crmEmailCampaignService.send() <4>
 <3> Add two recipients.
 <4> Start the campaign. This will send the email to the recipients.
 
+==== Bounce Tracking (return-to-sender)
+
+When you send out large amount of emails you must have a process to handle invalid email addresses and other type of
+return-to-sender emails. The quartz job `CrmEmailBounceJob` helps you with that burden. It periodically scans the IMAP mailbox
+that you used as `sender` or `reply-to` address. If it finds an error report from an external mail server
+it looks up the recipient in your {gr8crm} database and marks it with *error* status.
+Optionally it can tag the `CrmContact` instance with a tag that tells you that this contact's email address it not valid.
+Future email campaign can ignore contacts tagged as invalid. Or you can query and delete them from your address database.
+
+[source, groovy]
+Config.groovy
+----
+crm {
+    campaign {
+        job.bounce.enabled = true
+        email {
+            bounce {
+                imap.host = 'imap.googlemail.com'
+                imap.port = 993
+                imap.username = 'info@yourcompany.com' <1>
+                imap.password = 'password' <2>
+                imap.store = 'imaps'
+                to = 'newsletter@yourcompany.com' <3>
+                tag = 'wrong-email' <4>
+                tenant = 1 <5>
+            }
+        }
+    }
+}
+----
+<1> Your sender or reply-to address
+<2> GMail users, generate an app specific password in Google Admin Console
+<3> If the sender or reply-to address is an alias, specify the address here to filter messages on *To:*
+<4> Contacts will be tagged with this value, exclude or set to null if you don't want to use tagging
+<5> The tenant to process in a multi-teant environment
+
 == Changes
 
+2.4.2:: Better configurability for the email campaign bounce tracker
 2.4.1:: First public release (2.4.0 got corrupted when published to grails.org)
 
 == License

@@ -33,19 +33,23 @@ class CrmEmailBounceService {
     void scan(String host, int port, String username, String password) {
         def config = grailsApplication.config
 
+        final String storeName = config.crm.campaign.email.bounce.imap.store ?: "imap"
         final String inboxFolder = config.crm.campaign.email.bounce.imap.folder.inbox ?: "INBOX"
         final String archiveFolder = config.crm.campaign.email.bounce.imap.folder.archive ?: (inboxFolder + ".Archive")
         final String tag = config.crm.campaign.email.bounce.tag ?: null
+        final String to = config.crm.campaign.email.bounce.to ?: null
         final Integer maxProcess = config.crm.campaign.email.bounce.maxProcess ?: 10000
-
-        crmImapService.eachMessage(
+        final Map params = [
                 host: host,
                 port: port,
                 username: username,
                 password: password,
+                store: storeName,
                 inbox: inboxFolder,
                 archive: archiveFolder,
-                max: maxProcess) { Message msg ->
+                to: to,
+                max: maxProcess]
+        crmImapService.eachMessage(params) { Message msg ->
 
             if (isPermanentFailure(msg)) {
                 final String bodyText = getMessageText(msg)
