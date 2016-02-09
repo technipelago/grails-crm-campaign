@@ -68,7 +68,10 @@ class EmailCampaignSpec extends IntegrationSpec {
 
         when: "Add 2 unique recipients"
         def count = crmEmailCampaignService.createRecipients(campaign,
-                ['me@mycompany.com', 'foo@bar.com', 'me@mycompany.com'])
+                [[email: 'me@mycompany.com'],
+                 [email: 'foo@bar.com'],
+                 [email: 'me@mycompany.com']
+                ])
 
         then:
         count == 2

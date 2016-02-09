@@ -18,6 +18,7 @@ class CrmEmailCampaignService {
     private static byte[] beaconBytes
 
     def grailsApplication
+    def crmCoreService
     def jobManagerService
     def crmContentService
     def crmContentRenderingService
@@ -37,11 +38,12 @@ class CrmEmailCampaignService {
     }
 
     @Transactional
-    int createRecipients(final CrmCampaign campaign, final List<String> recipients) {
+    int createRecipients(final CrmCampaign campaign, final List recipients) {
         int count = 0
-        for (String email in recipients) {
+        for (r in recipients) {
+            def email = r.email
             if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
-                new CrmCampaignRecipient(campaign: campaign, email: email).save(failOnError: true)
+                new CrmCampaignRecipient(campaign: campaign, email: email, ref: r.ref).save(failOnError: true)
                 count++
             }
         }
@@ -181,7 +183,8 @@ class CrmEmailCampaignService {
         final Object html = new XmlSlurper(new Parser()).parseText(input)
         final Collection links = html.depthFirst().findAll { it.name() == 'a' }
         String addBeacon = grailsApplication.config.crm.campaign.email.track
-        String beaconSrc = addBeacon ? grailsLinkGenerator.link(mapping: 'crm-track-beacon', params: [id: recipient.guid]) : null
+        String beaconSrc = addBeacon ? grailsLinkGenerator.link(mapping: 'crm-track-beacon',
+                params: [id: recipient.guid], absolute: true) : null
 
         for (a in links) {
             String href = a.@href?.toString()

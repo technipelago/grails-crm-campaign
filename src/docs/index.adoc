@@ -236,13 +236,26 @@ emailCampaign.configure(campaign) {
     parts = ['body']
     body = """<h1>Hello World!</h1>"""
 } <2>
-crmEmailCampaignService.createRecipients(campaign, ['me@mycompany.com', 'joe.average@customer.com']) <3>
+crmEmailCampaignService.createRecipients(campaign, [[email: 'me@mycompany.com'], [email: 'joe.average@customer.com']]) <3>
 crmEmailCampaignService.send() <4>
 ----
 <1> Inject the EmailCampaign bean so we can use it to configure our campaign.
 <2> Configure the email layout and other email parameters.
 <3> Add two recipients.
 <4> Start the campaign. This will send the email to the recipients.
+
+==== Open tracking
+
+If you want to know if a recipient has opened the email you can include an invisible "beacon" image that when
+requested from the server notifies the campaign that the recipient has viewed the email. However this is not
+100% accurate because most people today don't show images automatically in their email clients. They have to
+manually force a download of remote content (images). But it can give you a hint about how successfull your campaign is.
+
+To activate the tracking image add the following configuration parameter:
+
+    crm.campaign.email.track = true
+
+This adds a tracking image to all outbound emails and you can see the result in the *target group* tab on the campaign.
 
 ==== Bounce Tracking (return-to-sender)
 
@@ -282,6 +295,7 @@ crm {
 
 == Changes
 
+2.4.3:: Fixed bug that caused the link between recipient and contact to be missing when sending emails
 2.4.2:: Better configurability for the email campaign bounce tracker
 2.4.1:: First public release (2.4.0 got corrupted when published to grails.org)
 
