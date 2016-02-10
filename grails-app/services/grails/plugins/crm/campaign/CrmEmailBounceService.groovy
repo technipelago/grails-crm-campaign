@@ -39,6 +39,7 @@ class CrmEmailBounceService {
         final String tag = config.crm.campaign.email.bounce.tag ?: null
         final String to = config.crm.campaign.email.bounce.to ?: null
         final Integer maxProcess = config.crm.campaign.email.bounce.maxProcess ?: 10000
+        final boolean clearEmail = config.crm.campaign.email.bounce.clearEmail
         final Map params = [
                 host: host,
                 port: port,
@@ -79,7 +80,7 @@ class CrmEmailBounceService {
                                         def reference = crmCoreService.getReference(recipient.ref)
                                         if (reference) {
                                             reference.setTagValue(tag)
-                                            if (reference.hasProperty('email')) {
+                                            if (clearEmail && reference.hasProperty('email')) {
                                                 reference.email = null
                                             }
                                             reference.save()

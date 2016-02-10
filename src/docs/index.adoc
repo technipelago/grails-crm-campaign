@@ -281,17 +281,19 @@ crm {
                 imap.store = 'imaps'
                 to = 'newsletter@yourcompany.com' <3>
                 tag = 'wrong-email' <4>
-                tenant = 1 <5>
+                clearEmail = true <5>
+                tenant = 1 <6>
             }
         }
     }
 }
 ----
 <1> Your sender or reply-to address
-<2> GMail users, generate an app specific password in Google Admin Console
+<2> GMail users, you can generate an app specific password in Google Admin Console
 <3> If the sender or reply-to address is an alias, specify the address here to filter messages on *To:*
-<4> Contacts will be tagged with this value, exclude or set to null if you don't want to use tagging
-<5> The tenant to process in a multi-teant environment
+<4> Contacts will be tagged with this value, exclude or set to `null` if you don't want to use tagging
+<5> If `true` the email property of the recipient will be set to `null` (to make it impossible to send email to this recipient again)
+<6> The tenant to process in a multi-teant environment
 
 == Changes
 
