@@ -8,6 +8,9 @@ import grails.util.GrailsNameUtils
  */
 class EmailCampaign {
 
+    private static final List<String> KNOWN_PROPERTIES =
+            ['sender', 'senderName', 'replyTo', 'cc', 'bcc', 'subject', 'template', 'external']
+
     def crmEmailCampaignService
 
     void configure(CrmCampaign campaign, Closure arg) {
@@ -16,36 +19,29 @@ class EmailCampaign {
 
     void configure(CrmCampaign campaign, Map params) {
         campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
-        def cfg = params.subMap(['sender', 'senderName', 'subject', 'parts', 'template', 'external'])
-        def s = new StringBuilder()
-        def parts = cfg.parts
-        if(! (parts instanceof Collection)) {
-            parts = [parts]
-        }
-        for (part in parts) {
-            def p = params[part]
-            cfg[part] = p
-            if (p) {
-                s << p
+        campaign.configuration = params.subMap(KNOWN_PROPERTIES)
+        StringBuilder allParts = new StringBuilder()
+        params.findAll { !KNOWN_PROPERTIES.contains(it.key) }.each { key, value ->
+            crmEmailCampaignService.setPart(campaign, key, value?.toString())
+            if(value) {
+                allParts << value.toString()
             }
         }
 
-        if(! params.preview) {
+        if (!params.preview) {
             // Scan hyperlinks in all parts and add CrmCampaignTrackable for each link found.
             try {
-                crmEmailCampaignService.collectHyperlinks(campaign, s.toString())
+                crmEmailCampaignService.collectHyperlinks(campaign, allParts.toString())
             } catch (Exception e) {
                 log.error "Failed to scan hyperlinks in campaign [$campaign]", e
             }
         }
-
-        campaign.configuration = cfg
     }
 
     // TODO this method is not tested and not used.
     def process(data) {
         def recipient = CrmCampaignRecipient.get(data.id)
-        if(recipient) {
+        if (recipient) {
             return crmEmailCampaignService.render(recipient.campaign, recipient, data)
         }
         return null

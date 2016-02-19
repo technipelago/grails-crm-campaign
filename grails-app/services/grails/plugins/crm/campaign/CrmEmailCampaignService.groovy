@@ -1,17 +1,19 @@
 package grails.plugins.crm.campaign
 
-import grails.plugins.crm.core.TenantUtils
+import grails.plugins.crm.content.CrmResourceRef
+import grails.transaction.Transactional
 import groovy.xml.StreamingMarkupBuilder
 import org.apache.commons.lang.StringUtils
 import org.ccil.cowan.tagsoup.Parser
 import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * Service for outbound email campaigns.
  */
 class CrmEmailCampaignService {
+
+    private static final String BODY_PART = 'body.html'
 
     static transactional = false
 
@@ -22,6 +24,7 @@ class CrmEmailCampaignService {
     def jobManagerService
     def crmContentService
     def crmContentRenderingService
+    def crmCampaignService
     def grailsLinkGenerator
 
     public byte[] getBeaconImage() {
@@ -114,6 +117,8 @@ class CrmEmailCampaignService {
             }
         }
 
+        // A null reply indicates that the email was sent ok and we trigger an "sentMail" event
+        // that listeners can use for logging purposes, etc.
         if (!reply) {
             event(for: "crmCampaign", topic: "sentMail", fork: true,
                     data: [tenant: r.campaign.tenantId, campaign: r.campaign.id, id: r.id, email: r.email, ref: r.ref])
@@ -164,13 +169,19 @@ class CrmEmailCampaignService {
         url
     }
 
-    String replaceHyperlinks(final CrmCampaignRecipient recipient, final String input) {
+    private boolean isAddBeacon(cfg) {
+        if (cfg != null) {
+            return Boolean.valueOf(cfg.toString())
+        }
+        grailsApplication.config.crm.campaign.email.track
+    }
+
+    String replaceHyperlinks(final CrmCampaignRecipient recipient, final String input, final Map configuration) {
         final String serverURL = getBaseUrl()
         final CrmCampaign campaign = recipient.campaign
         final Object html = new XmlSlurper(new Parser()).parseText(input)
         final Collection links = html.depthFirst().findAll { it.name() == 'a' }
-        String addBeacon = grailsApplication.config.crm.campaign.email.track
-        String beaconSrc = addBeacon ? grailsLinkGenerator.link(mapping: 'crm-track-beacon',
+        String beaconSrc = isAddBeacon(configuration.track) ? grailsLinkGenerator.link(mapping: 'crm-track-beacon',
                 params: [id: recipient.guid], absolute: true) : null
 
         for (a in links) {
@@ -279,6 +290,15 @@ class CrmEmailCampaignService {
         }
     }
 
+    /**
+     * The campaign's business key is created from id and dateCreated.
+     * Format: [length of id][id][dateCreated]
+     * Example: A campaign with id=42 and created=2016-02-19 20:44 will have the business key: "2421602192044".
+     *
+     * @param publicId the campaign's business key
+     * @return a CrmCampaign instance or null if not found
+     */
+    @Transactional(readOnly = true)
     CrmCampaign getCampaignByPublicId(String publicId) {
         final Integer idLength = Integer.valueOf(publicId[0])
         final Long primaryKey = Long.valueOf(publicId[1..idLength])
@@ -292,6 +312,7 @@ class CrmEmailCampaignService {
         null
     }
 
+    @Transactional(readOnly = true)
     String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null, Map userModel = [:]) {
         if (campaign == null) {
             campaign = recipient?.campaign
@@ -303,53 +324,38 @@ class CrmEmailCampaignService {
         Long tenant = campaign.tenantId
         def model = [tenant: tenant, campaign: campaign?.dao, recipient: recipient?.dao]
         def reference
-        if(recipient?.ref) {
+        if (recipient?.ref) {
             model.reference = reference = crmCoreService.getReference(recipient.ref)
         }
         Map cfg = campaign.configuration
         model.putAll(cfg)
-        if(userModel) {
+        if (userModel) {
             model.putAll(userModel)
         }
 
-        // If the campaign is using a main template, process the template with FreeMarker.
-        final String template = cfg.template
-        String content
-        if (template) {
-            def templateInstance = crmContentService.getContentByPath(template, tenant)
-            if (templateInstance) {
-                final StringWriter s = new StringWriter()
-                crmContentRenderingService.render(templateInstance, model, 'freemarker', s)
-                content = s.toString()
-            } else {
-                log.warn("Template [${template}] referenced by campaign [${campaign.id}] not found")
-                return
-            }
+        CrmResourceRef templateInstance
+        String templateName = cfg.template
+        if (templateName) {
+            templateInstance = crmContentService.getContentByPath(templateName, tenant)
         } else {
-            final StringBuilder s = new StringBuilder()
-            for (String p in cfg.parts) {
-                String c = cfg[p]
-                if (c) {
-                    if (s.length()) {
-                        s << '\n'
-                    }
-                    s << c
-                }
-            }
-            content = s.toString()
-            if(recipient) {
-                // TODO parse content with Freemarker!
-                content = content.replaceAll(/#ID#/, recipient.id.toString())
-                if(reference.hasProperty('externalRef')) {
-                    content = content.replaceAll(/#NUMBER#/, reference.externalRef)
-                }
-            }
-
+            templateName = BODY_PART
+            templateInstance = getPart(campaign, templateName)
         }
 
-        recipient ? replaceHyperlinks(recipient, content) : content
+        String content
+        if (templateInstance) {
+            final StringWriter s = new StringWriter()
+            crmContentRenderingService.render(templateInstance, model, 'freemarker', s)
+            content = s.toString()
+        } else {
+            log.warn("Template [$templateName] referenced by campaign [${campaign.id}] not found")
+            return "Template not found: $templateName"
+        }
+
+        recipient ? replaceHyperlinks(recipient, content, cfg) : content
     }
 
+    @Transactional(readOnly = true)
     Map getStatistics(CrmCampaign crmCampaign) {
         def props = ['dateCreated', 'dateSent', 'dateOpened', 'dateOptOut', 'dateBounced']
         def result = CrmCampaignRecipient.createCriteria().get() {
@@ -363,5 +369,32 @@ class CrmEmailCampaignService {
         }
 
         [props, result].transpose().collectEntries { it }
+    }
+
+    @Transactional(readOnly = true)
+    CrmResourceRef getPart(final CrmCampaign crmCampaign, String partName) {
+        if (!partName.contains('.')) {
+            partName = partName + '.html'
+        }
+        crmCampaignService.getCampaignResource(crmCampaign, partName)
+    }
+
+    @Transactional
+    CrmResourceRef setPart(final CrmCampaign crmCampaign, String partName, String html) {
+        if (html == null) {
+            html = ''
+        }
+        if (!partName.contains('.')) {
+            partName = partName + '.html'
+        }
+        def p = getPart(crmCampaign, partName)
+        if (p) {
+            def is = new ByteArrayInputStream(html.getBytes('UTF-8'))
+            crmContentService.updateResource(p, is)
+            is.close()
+        } else {
+            p = crmContentService.createResource(html, partName, crmCampaign)
+        }
+        p
     }
 }
