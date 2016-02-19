@@ -21,9 +21,8 @@ import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import grails.plugins.selection.Selectable
-import org.apache.commons.lang.StringUtils
 import org.grails.databinding.SimpleMapDataBindingSource
-import org.hibernate.FetchMode
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 
 /**
@@ -313,4 +312,16 @@ class CrmCampaignService {
         crmContentService.findResourcesByReference(crmCampaign, [name: '=' + resourceName]).find { it }
     }
 
+    @Transactional
+    int createRecipients(final CrmCampaign campaign, final List recipients) {
+        int count = 0
+        for (r in recipients) {
+            def email = r.email
+            if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
+                new CrmCampaignRecipient(campaign: campaign, email: email, ref: r.ref).save(failOnError: true)
+                count++
+            }
+        }
+        return count
+    }
 }

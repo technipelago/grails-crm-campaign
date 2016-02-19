@@ -43,7 +43,7 @@ class EmailCampaignSpec extends IntegrationSpec {
             String senderEmail = cfg.sender
             String senderName = cfg.senderName
             String sender = senderName ? "$senderName <${senderEmail}>".toString() : senderEmail
-            String htmlBody = crmEmailCampaignService.render(crmCampaign, recipient)
+            String htmlBody = crmEmailCampaignService.render(crmCampaign, recipient, [foo: 42])
 
             mailService.sendMail {
                 to data.email
@@ -60,14 +60,14 @@ class EmailCampaignSpec extends IntegrationSpec {
             subject = "Integration test"
             sender = "me@mycompany.com"
             parts = ['body']
-            body = """<h1>Hello Räksmörgås!</h1>"""
+            body = """<h1>Hello \${foo} Räksmörgås!</h1>"""
         }
 
         then:
         !campaign.hasErrors()
 
         when: "Add 2 unique recipients"
-        def count = crmEmailCampaignService.createRecipients(campaign,
+        def count = crmCampaignService.createRecipients(campaign,
                 [[email: 'me@mycompany.com'],
                  [email: 'foo@bar.com'],
                  [email: 'me@mycompany.com']
@@ -92,6 +92,7 @@ class EmailCampaignSpec extends IntegrationSpec {
         then:
         message.subject == "Integration test"
         ["me@mycompany.com", "foo@bar.com"].contains(GreenMailUtil.getAddressList(message.from))
+        GreenMailUtil.getBody(message) == '<h1>Hello 42 Räksmörgås!</h1>'
     }
 
     def "bounce tracking"() {

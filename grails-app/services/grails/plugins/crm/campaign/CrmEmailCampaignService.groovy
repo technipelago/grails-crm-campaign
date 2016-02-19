@@ -37,19 +37,6 @@ class CrmEmailCampaignService {
         beaconBytes
     }
 
-    @Transactional
-    int createRecipients(final CrmCampaign campaign, final List recipients) {
-        int count = 0
-        for (r in recipients) {
-            def email = r.email
-            if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
-                new CrmCampaignRecipient(campaign: campaign, email: email, ref: r.ref).save(failOnError: true)
-                count++
-            }
-        }
-        return count
-    }
-
     def send(CrmCampaign campaign = null) {
         final Date now = new Date()
         final List<CrmCampaignRecipient> result = CrmCampaignRecipient.createCriteria().list([max: 500]) {
@@ -305,17 +292,25 @@ class CrmEmailCampaignService {
         null
     }
 
-    String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null) {
+    String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null, Map userModel = [:]) {
         if (campaign == null) {
             campaign = recipient?.campaign
             if (campaign == null) {
                 throw new IllegalArgumentException("campaign must be specified")
             }
         }
-        final Long tenant = TenantUtils.tenant
-        final Map model = [tenant: tenant, campaign: campaign, recipient: recipient]
-        final Map cfg = campaign.configuration
+
+        Long tenant = campaign.tenantId
+        def model = [tenant: tenant, campaign: campaign?.dao, recipient: recipient?.dao]
+        def reference
+        if(recipient?.ref) {
+            model.reference = reference = crmCoreService.getReference(recipient.ref)
+        }
+        Map cfg = campaign.configuration
         model.putAll(cfg)
+        if(userModel) {
+            model.putAll(userModel)
+        }
 
         // If the campaign is using a main template, process the template with FreeMarker.
         final String template = cfg.template
@@ -341,7 +336,15 @@ class CrmEmailCampaignService {
                     s << c
                 }
             }
-            content = s.toString() // TODO parse content with Freemarker
+            content = s.toString()
+            if(recipient) {
+                // TODO parse content with Freemarker!
+                content = content.replaceAll(/#ID#/, recipient.id.toString())
+                if(reference.hasProperty('externalRef')) {
+                    content = content.replaceAll(/#NUMBER#/, reference.externalRef)
+                }
+            }
+
         }
 
         recipient ? replaceHyperlinks(recipient, content) : content

@@ -135,6 +135,7 @@ class CrmCampaignTrackerController {
                 crmEmailCampaignService.link(recipient, null, request.remoteAddr)
             }
 
+            def campaignConfig = crmCampaign.configuration
             def body = crmEmailCampaignService.render(crmCampaign, crmCampaignRecipient)
             if (body) {
                 if (crmCampaignRecipient) {
@@ -142,11 +143,12 @@ class CrmCampaignTrackerController {
                     // Body
                     s << body
                     // Footer
-                    s << createOptOutLink(crmCampaignRecipient)
-
+                    if(campaignConfig.optout) {
+                        s << createOptOutLink(crmCampaignRecipient)
+                    }
                     body = s.toString()
                 }
-                return [body: body, campaign: crmCampaign, recipient: crmCampaignRecipient, cfg: crmCampaign.configuration]
+                return [body: body, campaign: crmCampaign, recipient: crmCampaignRecipient, cfg: campaignConfig]
             }
         } catch (Exception e) {
             log.error("Failed to render newsletter ${id}/${recipient}", e)

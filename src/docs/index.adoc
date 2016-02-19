@@ -236,7 +236,7 @@ emailCampaign.configure(campaign) {
     parts = ['body']
     body = """<h1>Hello World!</h1>"""
 } <2>
-crmEmailCampaignService.createRecipients(campaign, [[email: 'me@mycompany.com'], [email: 'joe.average@customer.com']]) <3>
+crmCampaignService.createRecipients(campaign, [[email: 'me@mycompany.com'], [email: 'joe.average@customer.com']]) <3>
 crmEmailCampaignService.send() <4>
 ----
 <1> Inject the EmailCampaign bean so we can use it to configure our campaign.

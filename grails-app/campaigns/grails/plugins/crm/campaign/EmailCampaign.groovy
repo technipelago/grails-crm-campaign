@@ -42,11 +42,13 @@ class EmailCampaign {
         campaign.configuration = cfg
     }
 
+    // TODO this method is not tested and not used.
     def process(data) {
         def recipient = CrmCampaignRecipient.get(data.id)
-        def reply = crmEmailCampaignService.render(recipient, [])
-        // TODO this is not tested and not used.
-        return reply
+        if(recipient) {
+            return crmEmailCampaignService.render(recipient.campaign, recipient, data)
+        }
+        return null
     }
 
 }
