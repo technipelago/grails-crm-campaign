@@ -7,6 +7,9 @@ import grails.plugins.crm.core.UuidEntity
  */
 @UuidEntity
 class CrmCampaignRecipient {
+
+    public static final List BIND_WHITELIST = ['campaign', 'ref', 'email']
+
     CrmCampaign campaign
     String ref
     String email
@@ -55,6 +58,14 @@ class CrmCampaignRecipient {
 
     transient String getAddress() {
         email
+    }
+
+    transient Map<String, Object> getDao() {
+        final Map<String, Object> map = [tenant: campaign.tenantId, guid: guid, campaign: campaign.getDao(), email: email]
+        if(ref) {
+            map.ref = ref
+        }
+        map
     }
 
     String toString() {

@@ -80,7 +80,7 @@ class CrmCampaign {
         cache true
     }
 
-    static transients = ['publicId', 'active', 'dates', 'duration', 'configuration']
+    static transients = ['publicId', 'active', 'dates', 'duration', 'configuration', 'dao']
 
     static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent', 'startTime', 'endTime'].asImmutable()
 
@@ -144,6 +144,25 @@ class CrmCampaign {
         }
 
         return dur
+    }
+
+    private Map<String, Object> getSelfProperties(List<String> props) {
+        props.inject([:]) { m, i ->
+            def v = this."$i"
+            if (v != null) {
+                m[i] = v
+            }
+            m
+        }
+    }
+
+    transient Map getDao() {
+        final Map<String, Object> map = getSelfProperties(['number', 'name', 'description', 'username', 'startTime', 'endTime'])
+        map.tenant = tenantId
+        if(parent) {
+            map.parent = parent.getDao()
+        }
+        map
     }
 
     Map getConfiguration() {
