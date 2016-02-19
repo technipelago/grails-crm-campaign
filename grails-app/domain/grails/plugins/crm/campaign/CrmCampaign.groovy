@@ -99,7 +99,6 @@ class CrmCampaign {
     def beforeDelete() {
         CrmCampaign.withNewSession {
             CrmCampaignRecipient.findAllByCampaign(this)*.delete(flush: true)
-            CrmEmailConfiguration.executeUpdate("delete from CrmEmailConfiguration where campaign = ?", [this])
         }
     }
 
