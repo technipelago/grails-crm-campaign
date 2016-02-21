@@ -58,19 +58,22 @@ class EmailCampaignSpec extends IntegrationSpec {
     }
 
     def "collect hyperlinks in email template"() {
-        when:
+        given:
         def campaign = crmCampaignService.createCampaign(name: "Links layout", true)
 
+        when:
+        crmEmailCampaignService.setPart(campaign, 'body', """<body>
+<h1>Link Test</h1>
+<p><a href="https://grails.org/">Grails</a><br/>
+<a href="http://start.spring.io/"></a></p>
+<div><a href="http://www.technipelago.se/development.html"></a></div>
+</body>""")
         then:
         !campaign.trackables
 
         when:
-        crmEmailCampaignService.collectHyperlinks(campaign, """<body>
-                <h1>Link Test</h1>
-                <p><a href="https://grails.org/">Grails</a><br/>
-                <a href="http://start.spring.io/"></a></p>
-                <div><a href="http://www.technipelago.se/development.html"></a></div>
-                </body>""")
+        crmEmailCampaignService.collectHyperlinks(campaign)
+
         then:
         campaign.trackables.size() == 3
     }
@@ -85,7 +88,8 @@ class EmailCampaignSpec extends IntegrationSpec {
 <div><a href="http://www.technipelago.se/development.html"></a></div>
 </body>"""
         when:
-        crmEmailCampaignService.collectHyperlinks(campaign, body)
+        crmEmailCampaignService.setPart(campaign, 'body', body)
+        crmEmailCampaignService.collectHyperlinks(campaign)
 
         then:
         campaign.trackables.size() == 3
@@ -127,7 +131,8 @@ class EmailCampaignSpec extends IntegrationSpec {
 <div><a href="http://www.technipelago.se/development.html"></a></div>
 </body>"""
         when:
-        crmEmailCampaignService.collectHyperlinks(campaign, body)
+        crmEmailCampaignService.setPart(campaign, 'body', body)
+        crmEmailCampaignService.collectHyperlinks(campaign)
         def recipient = new CrmCampaignRecipient(campaign: campaign, email: 'my@company.com').save(failOnError: true)
         def result = crmEmailCampaignService.replaceHyperlinks(recipient, body, [track: false])
 

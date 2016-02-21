@@ -20,21 +20,21 @@ class EmailCampaign {
     void configure(CrmCampaign campaign, Map params) {
         campaign.handlerName = GrailsNameUtils.getPropertyName(getClass())
         campaign.configuration = params.subMap(KNOWN_PROPERTIES)
-        StringBuilder allParts = new StringBuilder()
-        params.findAll { !KNOWN_PROPERTIES.contains(it.key) }.each { key, value ->
-            crmEmailCampaignService.setPart(campaign, key, value?.toString())
-            if(value) {
-                allParts << value.toString()
+        def partName = params._part
+        if (partName) {
+            def key = params.containsKey(partName) ?: 'content'
+            crmEmailCampaignService.setPart(campaign, partName, params[key])
+        } else {
+            params.findAll { !KNOWN_PROPERTIES.contains(it.key) }.each { key, value ->
+                crmEmailCampaignService.setPart(campaign, key, value?.toString())
             }
         }
 
-        if (!params.preview) {
-            // Scan hyperlinks in all parts and add CrmCampaignTrackable for each link found.
-            try {
-                crmEmailCampaignService.collectHyperlinks(campaign, allParts.toString())
-            } catch (Exception e) {
-                log.error "Failed to scan hyperlinks in campaign [$campaign]", e
-            }
+        // Scan hyperlinks in all parts and add CrmCampaignTrackable for each link found.
+        try {
+            crmEmailCampaignService.collectHyperlinks(campaign)
+        } catch (Exception e) {
+            log.error "Failed to scan hyperlinks in campaign [$campaign]", e
         }
     }
 

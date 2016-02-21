@@ -126,26 +126,31 @@ class CrmEmailCampaignService {
     }
 
     @Transactional
-    void collectHyperlinks(final CrmCampaign campaign, final String body) {
-        final Object html = new XmlSlurper(new Parser()).parseText(body)
-        final Collection links = html.depthFirst().findAll { it.name() == 'a' }
-        final Set delete = [] as Set
+    void collectHyperlinks(final CrmCampaign campaign) {
+        Set delete = [] as Set
         if (campaign.trackables) {
             delete.addAll(campaign.trackables)
         }
-        links.each { a ->
-            String href = a.@href?.toString()
-            String alt = a.@alt?.toString()
-            String text = a.text()
-            if (!href.startsWith('mailto')) {
-                def link = CrmCampaignTrackable.findByCampaignAndHref(campaign, href)
-                if (link) {
-                    link.alt = alt
-                    link.text = text
-                    link.save()
-                    delete.remove(link)
-                } else {
-                    campaign.addToTrackables(href: href, alt: alt, text: text)
+        List allParts = getAllParts(campaign)
+        for(part in allParts) {
+            final String body = part.text
+            final Object html = new XmlSlurper(new Parser()).parseText(body)
+            final Collection links = html.depthFirst().findAll { it.name() == 'a' }
+
+            links.each { a ->
+                String href = a.@href?.toString()
+                String alt = a.@alt?.toString()
+                String text = a.text()
+                if (!href.startsWith('mailto')) {
+                    def link = CrmCampaignTrackable.findByCampaignAndHref(campaign, href)
+                    if (link) {
+                        link.alt = alt
+                        link.text = text
+                        link.save()
+                        delete.remove(link)
+                    } else {
+                        campaign.addToTrackables(href: href, alt: alt, text: text)
+                    }
                 }
             }
         }
@@ -312,7 +317,6 @@ class CrmEmailCampaignService {
         null
     }
 
-    @Transactional(readOnly = true)
     String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null, Map userModel = [:]) {
         if (campaign == null) {
             campaign = recipient?.campaign
@@ -322,10 +326,9 @@ class CrmEmailCampaignService {
         }
 
         Long tenant = campaign.tenantId
-        def model = [tenant: tenant, campaign: campaign?.dao, recipient: recipient?.dao]
-        def reference
+        def model = recipient?.dao ?: [tenant: tenant, campaign: campaign.dao]
         if (recipient?.ref) {
-            model.reference = reference = crmCoreService.getReference(recipient.ref)
+            model.reference = crmCoreService.getReference(recipient.ref)
         }
         Map cfg = campaign.configuration
         model.putAll(cfg)
@@ -369,6 +372,11 @@ class CrmEmailCampaignService {
         }
 
         [props, result].transpose().collectEntries { it }
+    }
+
+    private List<CrmResourceRef> getAllParts(CrmCampaign crmCampaign) {
+        // TODO filter on resource status (STATUS_PUBLISHED)
+        crmContentService.findResourcesByReference(crmCampaign, [name: '*.html', sort: 'name', order: 'asc'])
     }
 
     @Transactional(readOnly = true)
