@@ -132,7 +132,7 @@ class CrmEmailCampaignService {
             delete.addAll(campaign.trackables)
         }
         List allParts = getAllParts(campaign)
-        for(part in allParts) {
+        for (part in allParts) {
             final String body = part.text
             final Object html = new XmlSlurper(new Parser()).parseText(body)
             final Collection links = html.depthFirst().findAll { it.name() == 'a' }
@@ -325,13 +325,34 @@ class CrmEmailCampaignService {
             }
         }
 
-        Long tenant = campaign.tenantId
-        def model = recipient?.dao ?: [tenant: tenant, campaign: campaign.dao]
+        def tenant = campaign.tenantId
+        def model = [:]
+
+        // The model is first populated with all properties from the (optional) reference domain instance.
         if (recipient?.ref) {
-            model.reference = crmCoreService.getReference(recipient.ref)
+            def reference = crmCoreService.getReference(recipient.ref)
+            if (reference) {
+                if (reference.hasProperty('dao')) {
+                    model.putAll(reference.dao) // Reference object must have a getDao() method.
+                } else {
+                    model.reference = reference
+                }
+            }
         }
+
+        // The we add properties from the recipient instance (including 'email').
+        if (recipient) {
+            model.putAll(recipient.dao)
+        } else {
+            model.campaign = campaign.dao
+            model.tenant = tenant
+        }
+
+        // And then configuration data for the campaign.
         Map cfg = campaign.configuration
         model.putAll(cfg)
+
+        // And finally the (optional) user supplied model.
         if (userModel) {
             model.putAll(userModel)
         }
