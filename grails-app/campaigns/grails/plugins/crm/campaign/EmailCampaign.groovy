@@ -1,5 +1,6 @@
 package grails.plugins.crm.campaign
 
+import grails.transaction.Transactional
 import grails.util.ClosureToMapPopulator
 import grails.util.GrailsNameUtils
 
@@ -47,4 +48,21 @@ class EmailCampaign {
         return null
     }
 
+    @Transactional
+    def migrate(CrmCampaign crmCampaign) {
+        def cfg = crmCampaign.getConfiguration()
+        def parts = cfg.parts
+        if(parts) {
+            for(p in parts) {
+                def part = cfg[p]
+                if(part) {
+                    crmEmailCampaignService.setPart(crmCampaign, p, part)
+                    cfg[p] = null
+                }
+            }
+            cfg.parts = null
+            crmCampaign.setConfiguration(cfg)
+        }
+        cfg
+    }
 }
