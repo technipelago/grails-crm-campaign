@@ -225,12 +225,26 @@ class CrmCampaignService {
         }
 
         if (save) {
-            crmCampaign.save()
+            if(crmCampaign.save()) {
+                copyCampaignResources(templateCampaign, crmCampaign)
+                event(namespace: 'crmCampaign', topic: 'copy', data: [tenant: crmCampaign.tenantId, id: crmCampaign.id, source: templateCampaign.id])
+            }
         } else {
             crmCampaign.validate()
             crmCampaign.clearErrors()
         }
         return crmCampaign
+    }
+
+    private void copyCampaignResources(CrmCampaign source, CrmCampaign target) {
+        def result = crmContentService.findResourcesByReference(source)
+        for (from in result) {
+            def metadata = from.getMetadata()
+            crmContentService.withInputStream(from.resource) { inputStream ->
+                crmContentService.createResource(inputStream, from.name, metadata.bytes, metadata.contentType, target,
+                        [title: from.title, description: from.description, status: from.status])
+            }
+        }
     }
 
     CrmCampaign getCampaign(Long id) {
