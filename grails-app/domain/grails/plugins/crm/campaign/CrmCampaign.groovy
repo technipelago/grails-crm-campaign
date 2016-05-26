@@ -37,8 +37,6 @@ import java.text.SimpleDateFormat
 @SequenceEntity(property = "number", maxSize = 16, blank = false, unique = "tenantId")
 class CrmCampaign {
 
-    public static final List BIND_WHITELIST = ['number', 'code', 'name', 'description', 'parent']
-
     String code
     String name
     String description
@@ -80,9 +78,10 @@ class CrmCampaign {
         cache true
     }
 
-    static transients = ['publicId', 'active', 'dates', 'duration', 'configuration', 'dao']
+    static transients = ['publicId', 'active', 'dates', 'duration', 'configuration', 'dao', 'recipients']
 
-    static final List BIND_WHITELIST = ['number', 'name', 'description', 'username', 'parent', 'startTime', 'endTime'].asImmutable()
+    public static
+    final List<String> BIND_WHITELIST = ['number', 'code', 'name', 'description', 'username', 'parent', 'startTime', 'endTime'].asImmutable()
 
     static taggable = true
     static attachmentable = true
@@ -158,10 +157,31 @@ class CrmCampaign {
     transient Map getDao() {
         final Map<String, Object> map = getSelfProperties(['number', 'name', 'description', 'username', 'startTime', 'endTime'])
         map.tenant = tenantId
-        if(parent) {
+        if (parent) {
             map.parent = parent.getDao()
         }
+        map.recipients = getRecipients()
         map
+    }
+
+    transient int getRecipients() {
+        CrmCampaign.withNewSession {
+            CrmCampaignRecipient.countByCampaign(this)
+        }
+    }
+
+    boolean contains(String email, String tel) {
+        CrmCampaign.withNewSession {
+            CrmCampaignRecipient.createCriteria().count() {
+                eq('campaign', this)
+                if (email) {
+                    ilike('email', email)
+                }
+                if (tel) {
+                    ilike('telephone', tel)
+                }
+            }
+        }
     }
 
     Map getConfiguration() {

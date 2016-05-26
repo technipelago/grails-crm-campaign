@@ -8,11 +8,13 @@ import grails.plugins.crm.core.UuidEntity
 @UuidEntity
 class CrmCampaignRecipient {
 
-    public static final List BIND_WHITELIST = ['campaign', 'ref', 'email']
+    public static final List BIND_WHITELIST = ['campaign', 'ref', 'name', 'email', 'telephone']
 
     CrmCampaign campaign
     String ref
+    String name
     String email
+    String telephone
     Date dateCreated
     Date dateSent
     Date dateOpened
@@ -28,7 +30,9 @@ class CrmCampaignRecipient {
         dateBounced(nullable: true)
         ref(maxSize: 80, nullable: true)
         // email:true removed since it does not support Firstname Lastname <email@foo.com>
-        email(maxSize: 100, unique: 'campaign')
+        name(maxSize: 100, nullable: true)
+        email(maxSize: 100, nullable: true)
+        telephone(maxSize: 32, nullable: true)
         reason(maxSize: 255, nullable: true)
     }
 
@@ -38,9 +42,11 @@ class CrmCampaignRecipient {
             guid index: 'idx_recipient_guid'
             ref index: 'idx_recipient_ref'
             dateSent index: 'idx_recipient_sent'
-            // Unique index on campaign_id + email
-            //campaign index: 'idx_recipient_mail'
-            //email index: 'idx_recipient_mail'
+            // Create index on campaign_id + email
+            campaign index: 'idx_recipient_mail,idx_recipient_tel'
+            email index: 'idx_recipient_mail'
+            // Create index on campaign_id + telephone
+            telephone index: 'idx_recipient_tel'
         }
     }
 
@@ -61,7 +67,8 @@ class CrmCampaignRecipient {
     }
 
     transient Map<String, Object> getDao() {
-        final Map<String, Object> map = [tenant: campaign.tenantId, guid: guid, campaign: campaign.getDao(), email: email]
+        final Map<String, Object> map = [tenant: campaign.tenantId, guid: guid, campaign: campaign.getDao(),
+                                         name: name, email: email, telephone: telephone]
         if(ref) {
             map.ref = ref
         }
@@ -69,6 +76,25 @@ class CrmCampaignRecipient {
     }
 
     String toString() {
-        email.toString()
+        final StringBuilder s = new StringBuilder()
+        if(name) {
+            s.append(name)
+        }
+        if(telephone) {
+            if(s.length()) {
+                s.append(', ')
+            }
+            s.append(telephone)
+        }
+        if(email) {
+            if(s.length()) {
+                s.append(' <')
+            }
+            s.append(email)
+            if(name || telephone) {
+                s.append('>')
+            }
+        }
+        return s.toString()
     }
 }

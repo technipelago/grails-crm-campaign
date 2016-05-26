@@ -14,6 +14,7 @@ import org.springframework.core.io.Resource
 class CrmEmailCampaignService {
 
     private static final String BODY_PART = 'body.html'
+    private static final String HANDLER_NAME = 'emailCampaign'
 
     static transactional = false
 
@@ -40,15 +41,20 @@ class CrmEmailCampaignService {
         beaconBytes
     }
 
-    def send(CrmCampaign campaign = null) {
+    def send(CrmCampaign crmCampaign = null) {
         final Date now = new Date()
-        final List<CrmCampaignRecipient> result = CrmCampaignRecipient.createCriteria().list([max: 500]) {
-            // 3000 email / hour.
+        if (log.isDebugEnabled()) {
+            log.debug "Checking pending recipients at $now"
+        }
+        def batchSize = grailsApplication.config.crm.campaign.email.batch.size ?: 500 // 3000 emails per hour.
+        final List<CrmCampaignRecipient> result = CrmCampaignRecipient.createCriteria().list([max: batchSize]) {
+            isNotNull('email') // email is forced at insert but this could be a hint for the query optimizer.
             isNull('dateSent')
             isNull('reason')
-            delegate.campaign {
-                if (campaign) {
-                    eq('id', campaign.id)
+            campaign {
+                eq('handlerName', HANDLER_NAME)
+                if (crmCampaign) {
+                    eq('id', crmCampaign.id)
                 }
                 or {
                     and {
@@ -79,7 +85,7 @@ class CrmEmailCampaignService {
         // 150 ms between each email means 2 minutes processing every 10 minutes.
         // Set to -1 for no sleep between emails.
         def sleep = grailsApplication.config.crm.campaign.email.sleep ?: 150L
-        def proxy = grailsApplication.mainContext.getBean('crmEmailCampaignService')
+        def proxy = grailsApplication.mainContext.getBean(this.class)
         for (CrmCampaignRecipient r in result) {
             proxy.sendToRecipient(r)
             if (sleep > 0) {

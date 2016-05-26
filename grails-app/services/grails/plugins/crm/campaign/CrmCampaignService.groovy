@@ -125,8 +125,8 @@ class CrmCampaignService {
                 inList('id', tagged)
             }
 
-            if (query.handlerName) {
-                eq('handlerName', query.handlerName)
+            if (query.handlerName || query.handler) {
+                eq('handlerName', query.handlerName ?: query.handler)
             }
 
             if (query.parent) {
@@ -167,6 +167,32 @@ class CrmCampaignService {
                 or {
                     lt('startTime', d2)
                     le('endTime', d2)
+                }
+            } else if (query.active) {
+                def now = new Date()
+                or {
+                    and {
+                        le('startTime', now)
+                        gt('endTime', now)
+                    }
+                    and {
+                        le('startTime', now)
+                        isNull('endTime')
+                    }
+                    and {
+                        isNull('startTime')
+                        gt('endTime', now)
+                    }
+                    and {
+                        isNull('startTime')
+                        isNull('endTime')
+                    }
+                }
+            } else if (query.active == false) {
+                def now = new Date()
+                or {
+                    gt('startTime', now)
+                    le('endTime', now)
                 }
             }
         }
@@ -225,7 +251,7 @@ class CrmCampaignService {
         }
 
         if (save) {
-            if(crmCampaign.save()) {
+            if (crmCampaign.save()) {
                 copyCampaignResources(templateCampaign, crmCampaign)
                 event(namespace: 'crmCampaign', topic: 'copy', data: [tenant: crmCampaign.tenantId, id: crmCampaign.id, source: templateCampaign.id])
             }
@@ -327,12 +353,23 @@ class CrmCampaignService {
     }
 
     @Transactional
-    int createRecipients(final CrmCampaign campaign, final List recipients) {
+    int createRecipients(final CrmCampaign campaign, final List<Map> recipients) {
         int count = 0
         for (r in recipients) {
-            def email = r.email
-            if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
-                new CrmCampaignRecipient(campaign: campaign, email: email, ref: r.ref).save(failOnError: true)
+            def name = r.name
+            def email = r.email?.trim()
+            def telephone = r.telephone?.trim()
+            if((email && telephone) && !CrmCampaignRecipient.countByCampaignAndEmailAndTelephone(campaign, email, telephone)) {
+                new CrmCampaignRecipient(campaign: campaign, name: name, email: email, telephone: telephone, ref: r.ref)
+                        .save(failOnError: true)
+                count++
+            } else if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
+                new CrmCampaignRecipient(campaign: campaign, name: name, email: email, telephone: telephone, ref: r.ref)
+                        .save(failOnError: true)
+                count++
+            } else if (telephone && !CrmCampaignRecipient.countByCampaignAndTelephone(campaign, telephone)) {
+                new CrmCampaignRecipient(campaign: campaign, name: name, telephone: telephone, ref: r.ref)
+                        .save(failOnError: true)
                 count++
             }
         }
