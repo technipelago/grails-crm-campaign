@@ -43,7 +43,11 @@ class CrmCampaignService {
         def tenant = crmSecurityService.getTenantInfo(event.tenant)
         TenantUtils.withTenant(tenant.id) {
             crmTagService.createTag(name: CrmCampaign.name, multiple: true)
-            sequenceGeneratorService.initSequence(CrmCampaign, null, tenant.id, 1, "%s")
+            // Initialize a number sequence for CrmCampaign
+            def config = grailsApplication.config.crm.campaign.sequence
+            def start = config.start ?: 1L
+            def format = config.format ?: "%s"
+            sequenceGeneratorService.initSequence(CrmCampaign, null, tenant.id, start, format)
         }
     }
 
