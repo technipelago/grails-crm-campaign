@@ -22,6 +22,7 @@ class CrmCampaignTrackable {
     }
 
     static mapping = {
+        cache true
         columns {
             guid index: 'idx_trackable_guid'
         }
