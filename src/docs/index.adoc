@@ -297,10 +297,11 @@ crm {
 
 == Changes
 
-2.4.4:: Better support for supplying custom model to email templates
-2.4.3:: Fixed bug that caused the link between recipient and contact to be missing when sending emails
-2.4.2:: Better configurability for the email campaign bounce tracker
-2.4.1:: First public release (2.4.0 got corrupted when published to grails.org)
+2.4.5:: When a campaign is copied, all attached resources (html, images, etc.) are now copied.
+2.4.4:: Better support for supplying custom model to email templates.
+2.4.3:: Fixed bug that caused the link between recipient and contact to be missing when sending emails.
+2.4.2:: Better configurability for the email campaign bounce tracker.
+2.4.1:: First public release (2.4.0 got corrupted when published to grails.org).
 
 == License
 
