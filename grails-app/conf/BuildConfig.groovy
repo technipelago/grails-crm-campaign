@@ -38,7 +38,7 @@ grails.project.dependency.resolution = {
             export = false
         }
 
-        test(":codenarc:0.24.1") { export = false }
+        test(":codenarc:0.25.2") { export = false }
         test(":code-coverage:2.0.3-3") { export = false }
         test(":greenmail:1.3.4") { export = false }
 
@@ -46,9 +46,9 @@ grails.project.dependency.resolution = {
         compile ":selection:0.9.8"
         compile ":sequence-generator:1.2"
 
-        compile ":crm-security:2.4.2"
-        compile ":crm-tags:2.4.1"
-        compile ":crm-content:2.4.3"
+        compile ":crm-security:2.4.3"
+        compile ":crm-tags:2.4.2"
+        compile ":crm-content:2.4.4"
     }
 }
 
