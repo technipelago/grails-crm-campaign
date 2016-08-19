@@ -54,10 +54,10 @@ Custom plugins can provide other campaign types with Grails artifacts.
             description "Campaign Management"
             link controller: "crmCampaign", action: "index"
             permissions {
-                guest "crmCampaign:index,list,show"
-                partner "crmCampaign:index,list,show"
-                user "crmCampaign:*"
-                admin "crmCampaign:*", "productDiscountCampaign,informationCampaign:edit"
+                guest "crmCampaign:index,list,show,recipients", "bannerCampaign,emailCampaign,informationCampaign,productDiscountCampaign:summary,statistics"
+                partner "crmCampaign:index,list,show,recipients", "bannerCampaign,emailCampaign,informationCampaign,productDiscountCampaign:summary,statistics"
+                user "crmCampaign:*", "bannerCampaign,emailCampaign,informationCampaign,productDiscountCampaign:edit,summary,statistics"
+                admin "crmCampaign:*", "bannerCampaign,emailCampaign,informationCampaign,productDiscountCampaign:*"
             }
         }
     }
