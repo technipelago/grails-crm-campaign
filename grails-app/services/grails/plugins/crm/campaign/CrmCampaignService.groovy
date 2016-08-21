@@ -21,6 +21,7 @@ import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import grails.plugins.selection.Selectable
+import groovy.transform.CompileStatic
 import org.grails.databinding.SimpleMapDataBindingSource
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -357,25 +358,33 @@ class CrmCampaignService {
     }
 
     @Transactional
+    @CompileStatic
     int createRecipients(final CrmCampaign campaign, final List<Map> recipients) {
         int count = 0
         for (r in recipients) {
-            def name = r.name
-            def email = r.email?.trim()
-            def telephone = r.telephone?.trim()
-            if((email && telephone) && !CrmCampaignRecipient.countByCampaignAndEmailAndTelephone(campaign, email, telephone)) {
-                new CrmCampaignRecipient(campaign: campaign, name: name, email: email, telephone: telephone, ref: r.ref)
-                        .save(failOnError: true)
-                count++
-            } else if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
-                new CrmCampaignRecipient(campaign: campaign, name: name, email: email, telephone: telephone, ref: r.ref)
-                        .save(failOnError: true)
-                count++
-            } else if (telephone && !CrmCampaignRecipient.countByCampaignAndTelephone(campaign, telephone)) {
-                new CrmCampaignRecipient(campaign: campaign, name: name, telephone: telephone, ref: r.ref)
-                        .save(failOnError: true)
-                count++
-            }
+            count += addRecipient(campaign, r)
+        }
+        return count
+    }
+
+    @Transactional
+    int addRecipient(final CrmCampaign campaign, final Map recipient) {
+        int count = 0
+        def name = recipient.name
+        def email = recipient.email?.trim()
+        def telephone = recipient.telephone?.trim()
+        if((email && telephone) && !CrmCampaignRecipient.countByCampaignAndEmailAndTelephone(campaign, email, telephone)) {
+            new CrmCampaignRecipient(campaign: campaign, name: name, email: email, telephone: telephone, ref: recipient.ref)
+                    .save(failOnError: true)
+            count++
+        } else if (email && !CrmCampaignRecipient.countByCampaignAndEmail(campaign, email)) {
+            new CrmCampaignRecipient(campaign: campaign, name: name, email: email, telephone: telephone, ref: recipient.ref)
+                    .save(failOnError: true)
+            count++
+        } else if (telephone && !CrmCampaignRecipient.countByCampaignAndTelephone(campaign, telephone)) {
+            new CrmCampaignRecipient(campaign: campaign, name: name, telephone: telephone, ref: recipient.ref)
+                    .save(failOnError: true)
+            count++
         }
         return count
     }
