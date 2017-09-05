@@ -323,7 +323,12 @@ class CrmEmailCampaignService {
         null
     }
 
-    String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null, Map userModel = [:]) {
+    Map getPreviewModel(CrmCampaign campaign) {
+        event(for: 'crmEmailCampaign', topic: 'previewModel', fork: false,
+                data: [tenant: campaign.tenantId, campaign: campaign.id, user: 'nobody']).waitFor(5000)?.value
+    }
+
+    String render(CrmCampaign campaign, CrmCampaignRecipient recipient = null, Map userModel = null) {
         if (campaign == null) {
             campaign = recipient?.campaign
             if (campaign == null) {
@@ -359,7 +364,10 @@ class CrmEmailCampaignService {
         model.putAll(cfg)
 
         // And finally the (optional) user supplied model.
-        if (userModel) {
+        if (!userModel) {
+            userModel = getPreviewModel(campaign)
+        }
+        if(userModel) {
             model.putAll(userModel)
         }
 
