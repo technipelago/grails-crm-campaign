@@ -48,7 +48,7 @@ grails.project.dependency.resolution = {
 
         compile ":crm-security:2.4.3"
         compile ":crm-tags:2.4.2"
-        compile ":crm-content:2.4.4"
+        compile ":crm-content:2.4.6"
     }
 }
 
