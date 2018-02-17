@@ -33,6 +33,7 @@ class CrmCampaignService {
 
     def grailsApplication
     def grailsWebDataBinder
+    def crmCoreService
     def crmSecurityService
     def crmContentService
     def crmTagService
@@ -387,5 +388,17 @@ class CrmCampaignService {
             count++
         }
         return count
+    }
+
+    CrmCampaignRecipient getRecipient(Long id) {
+        CrmCampaignRecipient.get(id)
+    }
+
+    def getRecipientReference(Long recipientId) {
+        CrmCampaignRecipient rcpt = getRecipient(recipientId)
+        if(rcpt?.ref) {
+            return crmCoreService.getReference(rcpt.ref)
+        }
+        return null
     }
 }
