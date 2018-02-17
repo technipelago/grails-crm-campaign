@@ -20,7 +20,7 @@ import grails.spring.BeanBuilder
 
 class CrmCampaignGrailsPlugin {
     def groupId = ""
-    def version = "2.4.6"
+    def version = "2.4.7-SNAPSHOT"
     def grailsVersion = "2.4 > *"
     def dependsOn = [:]
     def loadAfter = ['crmTags']
