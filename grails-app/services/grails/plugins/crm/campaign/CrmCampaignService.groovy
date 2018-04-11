@@ -21,9 +21,10 @@ import grails.plugins.crm.core.DateUtils
 import grails.plugins.crm.core.SearchUtils
 import grails.plugins.crm.core.TenantUtils
 import grails.plugins.selection.Selectable
+import grails.transaction.Transactional
 import groovy.transform.CompileStatic
 import org.grails.databinding.SimpleMapDataBindingSource
-import org.springframework.transaction.annotation.Transactional
+import org.grails.plugin.platform.events.EventMessage
 import org.springframework.web.multipart.MultipartFile
 
 /**
@@ -72,6 +73,18 @@ class CrmCampaignService {
             deleteCampaign(c)
         }
         log.warn("Deleted $count campaigns in tenant $tenant")
+    }
+
+    @Listener(namespace = "*", topic = "deleted")
+    def cleanupRecipients(EventMessage<Map> event) {
+        Map data = event.getData()
+        if(data.id) {
+            def ref = "${event.namespace}@${data.id}".toString()
+            def count = deleteRecipients(ref)
+            if(log.isDebugEnabled() && count) {
+                log.debug "Deleted $count campaign recipients for $ref"
+            }
+        }
     }
 
     List<String> getEnabledCampaignHandlers() {
@@ -388,6 +401,29 @@ class CrmCampaignService {
             count++
         }
         return count
+    }
+
+    @Transactional
+    int deleteRecipients(CrmCampaign crmCampaign, Collection<Long> recipients) {
+        def result = CrmCampaignRecipient.createCriteria().list() {
+            eq('campaign', crmCampaign)
+            if (recipients) {
+                inList('id', recipients)
+            }
+        }
+
+        for (r in result) {
+            r.delete()
+        }
+
+        return result.size()
+    }
+
+    @Transactional
+    int deleteRecipients(Object reference) {
+        def result = CrmCampaignRecipient.findAllByRef(crmCoreService.getReferenceIdentifier(reference))
+        result*.delete()
+        return result.size()
     }
 
     CrmCampaignRecipient getRecipient(Long id) {
