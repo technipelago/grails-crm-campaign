@@ -344,7 +344,9 @@ class CrmEmailCampaignService {
             def reference = crmCoreService.getReference(recipient.ref)
             if (reference) {
                 if (reference.hasProperty('dao')) {
-                    model.putAll(reference.dao) // Reference object must have a getDao() method.
+                    def dao = reference.dao
+                    model.putAll(dao)
+                    model.reference = dao
                 } else {
                     model.reference = reference
                 }
