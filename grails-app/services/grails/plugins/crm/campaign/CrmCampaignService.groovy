@@ -38,6 +38,7 @@ class CrmCampaignService {
     def crmSecurityService
     def crmContentService
     def crmTagService
+    def selectionRepositoryService
     def sequenceGeneratorService
 
     @Listener(namespace = "crmCampaign", topic = "enableFeature")
@@ -436,5 +437,17 @@ class CrmCampaignService {
             return crmCoreService.getReference(rcpt.ref)
         }
         return null
+    }
+
+    def getSelections(CrmCampaign campaign) {
+        def username = crmSecurityService.currentUser.username
+        def domain = 'crmContact'
+        event(for: domain, topic: 'getSelections', data: [tenant: campaign.tenantId, user: username, campaign: campaign.id], fork: false).values.flatten()
+    }
+
+    @Listener(namespace = '*', topic = 'getSelections')
+    def findSavedSelections(EventMessage<Map> event) {
+        Map data = event.getData()
+        selectionRepositoryService.list(event.namespace, data.user, data.tenant)
     }
 }
