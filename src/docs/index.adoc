@@ -297,6 +297,7 @@ crm {
 
 == Changes
 
+2.4.7:: Multiple recipients can now be deleted at once
 2.4.6:: New method CrmCampaignService#addRecipient(Map) that accepts a single recipient
 2.4.5:: When a campaign is copied, all attached resources (html, images, etc.) are now copied.
 2.4.4:: Better support for supplying custom model to email templates.
