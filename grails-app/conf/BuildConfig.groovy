@@ -43,8 +43,8 @@ grails.project.dependency.resolution = {
         test(":greenmail:1.3.4") { export = false }
 
         compile ":mail:1.0.7"
-        compile ":selection:0.9.8"
-        compile ":sequence-generator:1.2"
+        compile ":selection:0.9.9"
+        compile ":sequence-generator:1.2.1"
 
         compile ":crm-security:2.4.5"
         compile ":crm-tags:2.4.3"
